@@ -31,6 +31,25 @@ export default function Admin() {
   const [gpsLogs, setGpsLogs] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const courseOptions = [
+    { value: "WEB-101", label: "Pemrograman Web" },
+    { value: "CLOUD-101", label: "Cloud Computing" },
+    { value: "AI-201", label: "Machine Learning" },
+    { value: "DB-301", label: "Basis Data" },
+  ];
+
+  const sessionOptions = [
+    { value: "SESI-01", label: "Sesi 1" },
+    { value: "SESI-02", label: "Sesi 2" },
+    { value: "SESI-03", label: "Sesi 3" },
+    { value: "SESI-UTS", label: "UTS" },
+  ];
+
+  const resetView = () => {
+    setQrToken("");
+    setTimeLeft(null);
+  };
+
   const fetchPresence = useCallback(async () => {
     const courseId = course.trim();
     const sessionId = session.trim();
@@ -156,41 +175,45 @@ export default function Admin() {
           </p>
           <div className="admin-controls-row">
             <label className="admin-field">
-              <span className="admin-field-label">Course ID</span>
+              <span className="admin-field-label">Mata Kuliah</span>
               <span className="admin-field-control">
                 <span className="admin-field-icon">#</span>
-                <input
-                  type="text"
+                <select
                   value={course}
-                  onChange={(e) => setCourse(e.target.value)}
+                  onChange={(e) => {
+                    setCourse(e.target.value);
+                    resetView();
+                  }}
                   className="input-select"
-                  placeholder="Contoh: WEB-101"
-                  list="course-options"
-                />
+                >
+                  {courseOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
               </span>
             </label>
-            <datalist id="course-options">
-              <option value="WEB-101" />
-              <option value="CLOUD-101" />
-            </datalist>
             <label className="admin-field">
-              <span className="admin-field-label">Session ID</span>
+              <span className="admin-field-label">Sesi / Pertemuan</span>
               <span className="admin-field-control">
                 <span className="admin-field-icon">@</span>
-                <input
-                  type="text"
+                <select
                   value={session}
-                  onChange={(e) => setSession(e.target.value)}
+                  onChange={(e) => {
+                    setSession(e.target.value);
+                    resetView();
+                  }}
                   className="input-select"
-                  placeholder="Contoh: SESI-01"
-                  list="session-options"
-                />
+                >
+                  {sessionOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
               </span>
             </label>
-            <datalist id="session-options">
-              <option value="SESI-01" />
-              <option value="SESI-02" />
-            </datalist>
           </div>
 
           <div className={`qr-box ${qrToken ? "active" : ""}`}>
