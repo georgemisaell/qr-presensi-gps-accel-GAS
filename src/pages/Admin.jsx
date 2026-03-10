@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Admin.css";
 import { BASE_URL } from "../Api";
@@ -17,6 +17,32 @@ let DefaultIcon = L.icon({
   iconAnchor: [12, 41],
 });
 L.Marker.prototype.options.icon = DefaultIcon;
+
+function AutoFitMap({ points }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!points.length) return;
+
+    if (points.length === 1) {
+      map.setView([points[0].lat, points[0].lng], 16, {
+        animate: true,
+      });
+      return;
+    }
+
+    const bounds = L.latLngBounds(
+      points.map((point) => [point.lat, point.lng]),
+    );
+    map.fitBounds(bounds, {
+      padding: [40, 40],
+      maxZoom: 16,
+      animate: true,
+    });
+  }, [map, points]);
+
+  return null;
+}
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -314,8 +340,13 @@ export default function Admin() {
               </button>
             </div>
             <div className="modal-map-wrap">
-              <MapContainer center={[-2.5, 118]} zoom={5} className="gps-map">
+              <MapContainer
+                center={[-6.2, 106.8]}
+                zoom={12}
+                className="gps-map"
+              >
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <AutoFitMap points={mapPoints} />
                 {mapPoints.map((d, i) => (
                   <Marker key={i} position={[d.lat, d.lng]}>
                     <Popup>
