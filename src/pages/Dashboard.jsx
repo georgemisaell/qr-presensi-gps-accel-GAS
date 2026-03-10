@@ -1,0 +1,63 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Pastikan sudah install react-router-dom
+import "./Dashboard.css"; // Import CSS yang dibuat tadi
+
+export default function Dashboard() {
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleNavigation = (path) => {
+    setIsLoading(true);
+
+    // Memberikan sedikit efek delay agar transisi terasa halus
+    setTimeout(() => {
+      navigate(path);
+      // Jika kamu TIDAK pakai react-router-dom, ganti baris di atas dengan:
+      // window.location.href = path;
+    }, 300);
+  };
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-card fade-in">
+        <h1 className="dashboard-title">Portal Presensi</h1>
+        <p className="dashboard-subtitle">
+          Silakan pilih portal masuk sesuai dengan peran Anda
+        </p>
+
+        <div className="menu-grid">
+          {/* Tombol Admin */}
+          <div className="menu-btn" onClick={() => handleNavigation("/admin")}>
+            <div className="menu-icon">👨‍🏫</div>
+            <h3>Dosen / Admin</h3>
+            <p>Generate QR Code, kelola sesi kelas, dan pantau kehadiran.</p>
+          </div>
+
+          {/* Tombol Mahasiswa (Mengarah ke file CheckIn.jsx kamu) */}
+          <div className="menu-btn" onClick={() => handleNavigation("/client")}>
+            <div className="menu-icon">📱</div>
+            <h3>Mahasiswa</h3>
+            <p>Scan QR Code dan catat kehadiran Anda untuk sesi ini.</p>
+          </div>
+
+          {/* Tombol Accelerometer */}
+          <div
+            className="menu-btn"
+            onClick={() => handleNavigation("/accelerometer")}
+          >
+            <div className="menu-icon">📳</div>
+            <h3>Accelerometer</h3>
+            <p>Uji coba dan kirim data sensor pergerakan secara real-time.</p>
+          </div>
+        </div>
+
+        {/* Teks Loading */}
+        {isLoading && (
+          <div className="loading-text fade-in">
+            Sedang mengalihkan halaman...
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

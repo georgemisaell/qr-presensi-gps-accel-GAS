@@ -1,5 +1,5 @@
-const BASE_URL =
-  "https://script.google.com/macros/s/AKfycbxvR-hvXNxc8bWkGUMccsGOsPyIYj15sjbFEpkk3yk9IwRfZzw8foNGjrNlDkRdNy8l/exec";
+export const BASE_URL =
+  "https://script.google.com/macros/s/AKfycby-EUZrL50a3DrPKfls1270O5Rjh_lUXM8pyOR3rqFE2lWxcakwBsB9wwo8IhaZFB4r/exec";
 
 export async function checkIn(payload) {
   const response = await fetch(`${BASE_URL}?path=presence/checkin`, {
