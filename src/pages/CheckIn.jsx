@@ -163,32 +163,35 @@ export default function CheckIn() {
         <p className="checkin-subtitle">
           Masukkan NIM lalu scan QR dari dosen/admin.
         </p>
+        <div className="checkin-layout">
+          <section className="checkin-panel">
+            <label className="checkin-field" htmlFor="nim-input">
+              NIM Mahasiswa
+            </label>
+            <input
+              id="nim-input"
+              className="checkin-input"
+              placeholder="Contoh: 2205112345"
+              value={nim}
+              onChange={(e) => setNim(e.target.value)}
+            />
 
-        <label className="checkin-field" htmlFor="nim-input">
-          NIM Mahasiswa
-        </label>
-        <input
-          id="nim-input"
-          className="checkin-input"
-          placeholder="Contoh: 2205112345"
-          value={nim}
-          onChange={(e) => setNim(e.target.value)}
-        />
+            <button
+              className="checkin-scan-btn"
+              type="button"
+              onClick={startScanner}
+              disabled={isScanning}
+            >
+              {isScanning ? "Memulai Kamera..." : "Mulai Scan QR"}
+            </button>
 
-        <button
-          className="checkin-scan-btn"
-          type="button"
-          onClick={startScanner}
-          disabled={isScanning}
-        >
-          {isScanning ? "Memulai Kamera..." : "Mulai Scan QR"}
-        </button>
+            <p className={`checkin-status ${getStatusClass()}`}>{status}</p>
+          </section>
 
-        <div className="reader-wrapper">
-          <div id="reader" className="reader-box" />
+          <section className="reader-wrapper">
+            <div id="reader" className="reader-box" />
+          </section>
         </div>
-
-        <p className={`checkin-status ${getStatusClass()}`}>{status}</p>
       </div>
     </div>
   );
