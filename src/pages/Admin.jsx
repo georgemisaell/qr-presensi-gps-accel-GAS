@@ -379,7 +379,7 @@ export default function Admin() {
                   <th>NIM</th>
                   <th>Waktu</th>
                   <th>Map</th>
-                  <th></th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
