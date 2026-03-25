@@ -16,7 +16,6 @@ let DefaultIcon = L.icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
-L.Marker.prototype.options.icon = DefaultIcon;
 
 function AutoFitMap({ points }) {
   const map = useMap();
@@ -43,6 +42,35 @@ function AutoFitMap({ points }) {
 
   return null;
 }
+
+const markerColors = [
+  "red",
+  "blue",
+  "green",
+  "orange",
+  "violet",
+  "gold",
+  "black"
+];
+
+const getColorByDevice = (deviceId) => {
+  let hash = 0;
+  for (let i = 0; i < deviceId.length; i++) {
+    hash = deviceId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return markerColors[Math.abs(hash) % markerColors.length];
+};
+
+const createColoredIcon = (color) => {
+  return new L.Icon({
+    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+    shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  });
+};
 
 export default function Admin() {
   const QR_ROTATION_SECONDS = 20;
@@ -443,8 +471,13 @@ export default function Admin() {
               >
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 <AutoFitMap points={mapPoints} />
-                {mapPoints.map((d, i) => (
-                  <Marker key={i} position={[d.lat, d.lng]}>
+                {mapPoints.map((d, i) => {
+                  const deviceId = d.device_id || d.clientLabel || "unknown";
+                  const color = getColorByDevice(deviceId);
+                  const icon = createColoredIcon(color);
+
+                  return (
+                    <Marker key={i} position={[d.lat, d.lng]} icon={icon}>
                     <Popup>
                       {d.clientLabel}
                       {d.waktu
@@ -452,8 +485,25 @@ export default function Admin() {
                         : ""}
                     </Popup>
                   </Marker>
-                ))}
+                  )}
+                )}
               </MapContainer>
+              <div className="map-legend">
+                {mapPoints.map((d, i) => {
+                  const deviceId = d.device_id || d.clientLabel || "unknown";
+                  const color = getColorByDevice(deviceId);
+
+                  return (
+                    <div key={i} className="legend-item">
+                      <span
+                        className="legend-color"
+                        style={{ background: color }}
+                      ></span>
+                      {deviceId}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             {scannedClients.length > 0 && (
               <div className="modal-client-list">
