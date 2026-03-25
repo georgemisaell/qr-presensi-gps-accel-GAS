@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Pastikan sudah install react-router-dom
-import "./Dashboard.css"; // Import CSS yang dibuat tadi
+import { useNavigate } from "react-router-dom";
+import { AdminMenu } from "./menu/AdminMenu";
+import "./Dashboard.css";
+import { MahasiswaMenu } from "./menu/MahasiswaMenu";
+import { AccelMenu } from "./menu/AccelMenu";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,28 +30,13 @@ export default function Dashboard() {
 
         <div className="menu-grid">
           {/* Tombol Admin */}
-          <div className="menu-btn" onClick={() => handleNavigation("/admin")}>
-            <div className="menu-icon">👨‍🏫</div>
-            <h3>Dosen / Admin</h3>
-            <p>Generate QR Code, kelola sesi kelas, dan pantau kehadiran.</p>
-          </div>
+          <AdminMenu handleNavigation={handleNavigation} />
 
-          {/* Tombol Mahasiswa (Mengarah ke file CheckIn.jsx kamu) */}
-          <div className="menu-btn" onClick={() => handleNavigation("/client")}>
-            <div className="menu-icon">📱</div>
-            <h3>Mahasiswa</h3>
-            <p>Scan QR Code dan catat kehadiran Anda untuk sesi ini.</p>
-          </div>
+          {/* Tombol Mahasiswa */}
+          <MahasiswaMenu handleNavigation={handleNavigation} />
 
           {/* Tombol Accelerometer */}
-          <div
-            className="menu-btn"
-            onClick={() => handleNavigation("/accelerometer")}
-          >
-            <div className="menu-icon">📳</div>
-            <h3>Accelerometer</h3>
-            <p>Uji coba dan kirim data sensor pergerakan secara real-time.</p>
-          </div>
+          <AccelMenu />
         </div>
 
         {/* Teks Loading */}
