@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard/Dashboard";
 import CheckIn from "./pages/CheckIn";
 import Admin from "./pages/Admin";
 import Accelerometer from "./pages/Accelerometer";
