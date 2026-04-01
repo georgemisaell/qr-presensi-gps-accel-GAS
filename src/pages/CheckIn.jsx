@@ -6,7 +6,7 @@ import "./CheckIn.css";
 
 export default function CheckIn() {
   const navigate = useNavigate();
-  const [nim, setNim] = useState("");
+  const [userId, setUserId] = useState("");
   const [status, setStatus] = useState("Siap untuk memulai scan.");
   const [isScanning, setIsScanning] = useState(false);
   const scannerRef = useRef(null);
@@ -24,7 +24,7 @@ export default function CheckIn() {
     if (!scannerRef.current) return;
     try {
       await scannerRef.current.stop();
-    } catch (_error) {
+    } catch {
       // Ignore stop errors when scanner is already stopped.
     }
     scannerRef.current.clear();
@@ -32,8 +32,9 @@ export default function CheckIn() {
   };
 
   const startScanner = async () => {
-    if (!nim.trim()) {
-      alert("Masukkan NIM terlebih dahulu");
+    const normalizedUserId = userId.trim();
+    if (!normalizedUserId) {
+      alert("Masukkan User ID terlebih dahulu");
       return;
     }
 
@@ -58,19 +59,18 @@ export default function CheckIn() {
           setStatus("Mengirim data presensi...");
           try {
             const res = await checkIn({
-              user_id: nim,
-              nim,
+              user_id: normalizedUserId,
               device_id: deviceId,
-              qr_token: decodedText,
+              qr_token: String(decodedText || "").trim(),
               ts: new Date().toISOString(),
             });
 
             if (res.ok) {
-              setStatus("Presensi berhasil disubmit!");
+              setStatus("Check-in sukses. Status: checked_in");
             } else {
               setStatus("Gagal: " + res.error);
             }
-          } catch (_error) {
+          } catch {
             setStatus("Server error. Gagal menghubungi API.");
           } finally {
             setIsScanning(false);
@@ -78,7 +78,7 @@ export default function CheckIn() {
         },
         () => {},
       );
-    } catch (_error) {
+    } catch {
       setStatus("Gagal mengakses kamera. Pastikan izin diberikan.");
       setIsScanning(false);
     }
@@ -92,7 +92,13 @@ export default function CheckIn() {
   };
 
   const getStatusClass = () => {
-    if (status.toLowerCase().includes("berhasil")) return "status-success";
+    if (
+      status.toLowerCase().includes("berhasil") ||
+      status.toLowerCase().includes("sukses") ||
+      status.toLowerCase().includes("checked_in")
+    ) {
+      return "status-success";
+    }
     if (
       status.toLowerCase().includes("gagal") ||
       status.toLowerCase().includes("error")
@@ -119,19 +125,19 @@ export default function CheckIn() {
       <div className="checkin-card fade-in">
         <h2 className="checkin-title">Scan QR Presensi</h2>
         <p className="checkin-subtitle">
-          Masukkan NIM lalu scan QR dari dosen/admin.
+          Masukkan User ID lalu scan QR dari dosen.
         </p>
         <div className="checkin-layout">
           <section className="checkin-panel">
-            <label className="checkin-field" htmlFor="nim-input">
-              NIM Mahasiswa
+            <label className="checkin-field" htmlFor="user-id-input">
+              User ID Mahasiswa
             </label>
             <input
-              id="nim-input"
+              id="user-id-input"
               className="checkin-input"
-              placeholder="Contoh: 2205112345"
-              value={nim}
-              onChange={(e) => setNim(e.target.value)}
+              placeholder="Contoh: 2023xxxx"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
             />
 
             <button

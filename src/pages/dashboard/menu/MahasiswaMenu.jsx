@@ -3,7 +3,7 @@ export function MahasiswaMenu({ handleNavigation }) {
     <div className="menu-btn" onClick={() => handleNavigation("/client")}>
       <div className="menu-icon">📱</div>
       <h3>Mahasiswa</h3>
-      <p>Scan QR Code dan catat kehadiran Anda untuk sesi ini.</p>
+      <p>Scan QR dan kirim check-in (user_id, device_id, qr_token, ts).</p>
     </div>
   );
 }

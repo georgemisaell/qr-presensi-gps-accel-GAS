@@ -7,8 +7,8 @@ import { BASE_URL } from "../Api";
 export default function Admin() {
   const QR_ROTATION_SECONDS = 20;
   const navigate = useNavigate();
-  const [course, setCourse] = useState("WEB-101");
-  const [session, setSession] = useState("SESI-01");
+  const [course, setCourse] = useState("cloud-101");
+  const [session, setSession] = useState("sesi-01");
   const [qrToken, setQrToken] = useState("");
   const [timeLeft, setTimeLeft] = useState(null);
   const [isQrAutoRunning, setIsQrAutoRunning] = useState(false);
@@ -279,7 +279,6 @@ export default function Admin() {
             <table className="presence-table">
               <thead>
                 <tr>
-                  <th>NIM</th>
                   <th>User ID</th>
                   <th>Status</th>
                   <th>Waktu</th>
@@ -289,7 +288,6 @@ export default function Admin() {
               <tbody>
                 {visiblePresence.map((row, i) => (
                   <tr key={i}>
-                    <td>{row.nim}</td>
                     <td>{row.user_id || row.nim}</td>
                     <td>{row.status}</td>
                     <td>{new Date(row.waktu).toLocaleTimeString()}</td>
