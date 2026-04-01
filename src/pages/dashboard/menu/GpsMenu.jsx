@@ -3,7 +3,7 @@ export function GpsMenu({ handleNavigation }) {
     <div className="menu-btn" onClick={() => handleNavigation("/gps")}>
       <div className="menu-icon">🛰️</div>
       <h3>GPS</h3>
-      <p>Menu GPS disiapkan untuk tahap berikutnya.</p>
+      <p>Kirim lokasi periodik, lihat marker terbaru, dan polyline history.</p>
     </div>
   );
 }
