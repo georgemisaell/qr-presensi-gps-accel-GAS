@@ -1,76 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 import "./Admin.css";
 import { BASE_URL } from "../Api";
-
-// Fix icon leaflet yang sering hilang di React
-import L from "leaflet";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-let DefaultIcon = L.icon({
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
-function AutoFitMap({ points }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!points.length) return;
-
-    if (points.length === 1) {
-      map.setView([points[0].lat, points[0].lng], 16, {
-        animate: true,
-      });
-      return;
-    }
-
-    const bounds = L.latLngBounds(
-      points.map((point) => [point.lat, point.lng]),
-    );
-    map.fitBounds(bounds, {
-      padding: [40, 40],
-      maxZoom: 16,
-      animate: true,
-    });
-  }, [map, points]);
-
-  return null;
-}
-
-const markerColors = [
-  "red",
-  "blue",
-  "green",
-  "orange",
-  "violet",
-  "gold",
-  "black"
-];
-
-const getColorByDevice = (deviceId) => {
-  let hash = 0;
-  for (let i = 0; i < deviceId.length; i++) {
-    hash = deviceId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return markerColors[Math.abs(hash) % markerColors.length];
-};
-
-const createColoredIcon = (color) => {
-  return new L.Icon({
-    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-  });
-};
 
 export default function Admin() {
   const QR_ROTATION_SECONDS = 20;
@@ -83,23 +15,11 @@ export default function Admin() {
   const [presenceData, setPresenceData] = useState([]);
   const [presenceError, setPresenceError] = useState("");
   const [isFetchingPresence, setIsFetchingPresence] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [gpsLogs, setGpsLogs] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const courseOptions = [
-    { value: "WEB-101", label: "Pemrograman Web" },
-    { value: "CLOUD-101", label: "Cloud Computing" },
-    { value: "AI-201", label: "Machine Learning" },
-    { value: "DB-301", label: "Basis Data" },
-  ];
+  const courseOptions = [{ value: "cloud-101", label: "Cloud Computing" }];
 
-  const sessionOptions = [
-    { value: "SESI-01", label: "Sesi 1" },
-    { value: "SESI-02", label: "Sesi 2" },
-    { value: "SESI-03", label: "Sesi 3" },
-    { value: "SESI-UTS", label: "UTS" },
-  ];
+  const sessionOptions = [{ value: "sesi-02", label: "Sesi 2" }];
 
   const resetView = () => {
     setIsQrAutoRunning(false);
@@ -231,54 +151,12 @@ export default function Admin() {
     }
   };
 
-  const openGpsModal = async () => {
-    setIsModalOpen(true);
-    try {
-      const query = new URLSearchParams({
-        path: "sensor/gps/logs",
-        _t: String(Date.now()),
-      });
-      const resp = await fetch(`${BASE_URL}?${query.toString()}`, {
-        cache: "no-store",
-      });
-      const json = await resp.json();
-      if (json.ok) {
-        setGpsLogs(Array.isArray(json.data) ? json.data : []);
-      } else {
-        setGpsLogs([]);
-      }
-    } catch (error) {
-      console.error(error);
-      setGpsLogs([]);
-    }
-  };
-
-  const scannedClients = useMemo(() => {
-    const latestByDevice = new Map();
-
-    gpsLogs.forEach((item) => {
-      const deviceId = item.device_id || item.user_id || item.nim || "Unknown";
-      if (!latestByDevice.has(deviceId)) {
-        latestByDevice.set(deviceId, {
-          ...item,
-          clientLabel: item.nim || item.user_id || item.device_id || "Unknown",
-        });
-      }
-    });
-
-    return Array.from(latestByDevice.values());
-  }, [gpsLogs]);
-
-  const mapPoints = useMemo(() => {
-    return scannedClients
-      .filter((item) => item.lat && item.lng)
-      .map((item) => ({
-        ...item,
-        lat: Number(item.lat),
-        lng: Number(item.lng),
-      }))
-      .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng));
-  }, [scannedClients]);
+  const visiblePresence = useMemo(() => {
+    return presenceData.map((row) => ({
+      ...row,
+      status: "checked_in",
+    }));
+  }, [presenceData]);
 
   return (
     <div className="admin-container">
@@ -380,9 +258,6 @@ export default function Admin() {
           >
             Stop QR Token
           </button>
-          <button className="btn btn-secondary" onClick={openGpsModal}>
-            📍 Lihat Peta GPS
-          </button>
         </div>
 
         {/* Tabel Presensi */}
@@ -405,33 +280,24 @@ export default function Admin() {
               <thead>
                 <tr>
                   <th>NIM</th>
+                  <th>User ID</th>
+                  <th>Status</th>
                   <th>Waktu</th>
-                  <th>Map</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {presenceData.map((row, i) => (
+                {visiblePresence.map((row, i) => (
                   <tr key={i}>
                     <td>{row.nim}</td>
+                    <td>{row.user_id || row.nim}</td>
+                    <td>{row.status}</td>
                     <td>{new Date(row.waktu).toLocaleTimeString()}</td>
-                    <td>
-                      {row.lat ? (
-                        <a
-                          href={`https://www.google.com/maps?q=${row.lat},${row.lng}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          📍 Lihat
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
                     <td>
                       <button
                         className="btn-row-delete"
                         title="Hapus presensi"
+                        type="button"
                         onClick={() => deletePresence(row.nim)}
                       >
                         Hapus
@@ -444,108 +310,6 @@ export default function Admin() {
           </div>
         </div>
       </div>
-
-      {/* Modal GPS */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Peta Pantauan Semua Klien</h3>
-              <button
-                className="btn btn-close"
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-              >
-                Tutup
-              </button>
-            </div>
-            <p className="modal-subtitle">
-              Menampilkan {scannedClients.length} klien terbaru yang sudah
-              mengirim scan/GPS.
-            </p>
-            <div className="modal-map-wrap">
-              <MapContainer
-                center={[-6.2, 106.8]}
-                zoom={12}
-                className="gps-map"
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <AutoFitMap points={mapPoints} />
-                {mapPoints.map((d, i) => {
-                  const deviceId = d.device_id || d.clientLabel || "unknown";
-                  const color = getColorByDevice(deviceId);
-                  const icon = createColoredIcon(color);
-
-                  return (
-                    <Marker key={i} position={[d.lat, d.lng]} icon={icon}>
-                    <Popup>
-                      {d.clientLabel}
-                      {d.waktu
-                        ? ` - ${new Date(d.waktu).toLocaleString()}`
-                        : ""}
-                    </Popup>
-                  </Marker>
-                  )}
-                )}
-              </MapContainer>
-              <div className="map-legend">
-                {mapPoints.map((d, i) => {
-                  const deviceId = d.device_id || d.clientLabel || "unknown";
-                  const color = getColorByDevice(deviceId);
-
-                  return (
-                    <div key={i} className="legend-item">
-                      <span
-                        className="legend-color"
-                        style={{ background: color }}
-                      ></span>
-                      {deviceId}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {scannedClients.length > 0 && (
-              <div className="modal-client-list">
-                {scannedClients.map((client, index) => (
-                  <div
-                    key={`${client.clientLabel}-${index}`}
-                    className="modal-client-item"
-                  >
-                    <div>
-                      <p className="modal-client-name">{client.clientLabel}</p>
-                      <p className="modal-client-time">
-                        {client.waktu
-                          ? new Date(client.waktu).toLocaleString()
-                          : "Waktu tidak tersedia"}
-                      </p>
-                    </div>
-                    {client.lat && client.lng ? (
-                      <a
-                        className="modal-client-link"
-                        href={`https://www.google.com/maps?q=${client.lat},${client.lng}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Buka Maps
-                      </a>
-                    ) : (
-                      <span className="modal-client-muted">
-                        Tanpa koordinat
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            {mapPoints.length === 0 && (
-              <p className="modal-empty">
-                Belum ada data koordinat untuk ditampilkan.
-              </p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

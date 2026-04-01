@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
-import { checkIn, sendGps } from "../Api";
+import { checkIn } from "../Api";
 import "./CheckIn.css";
 
 export default function CheckIn() {
@@ -19,31 +19,6 @@ export default function CheckIn() {
       }
     };
   }, []);
-
-  const getLocation = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject("Geolokasi tidak didukung oleh browser ini.");
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          });
-        },
-        () => {
-          reject(
-            "Gagal mengambil lokasi. Pastikan GPS aktif dan izin diberikan.",
-          );
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-      );
-    });
-  };
 
   const stopScannerIfNeeded = async () => {
     if (!scannerRef.current) return;
@@ -79,23 +54,6 @@ export default function CheckIn() {
 
           const deviceId =
             localStorage.getItem("device_id") || generateDeviceId();
-
-          setStatus("Mengambil lokasi GPS...");
-          try {
-            const coords = await getLocation();
-            await sendGps({
-              device_id: deviceId,
-              lat: coords.lat,
-              lng: coords.lng,
-              accuracy: coords.accuracy,
-              ts: new Date().toISOString(),
-            });
-          } catch (gpsError) {
-            console.warn(gpsError);
-            alert(
-              "Peringatan: Lokasi GPS tidak terdeteksi, presensi tetap akan dilanjutkan.",
-            );
-          }
 
           setStatus("Mengirim data presensi...");
           try {

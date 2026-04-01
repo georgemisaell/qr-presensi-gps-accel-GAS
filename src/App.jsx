@@ -4,6 +4,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import CheckIn from "./pages/CheckIn";
 import Admin from "./pages/Admin";
 import Accelerometer from "./pages/Accelerometer";
+import GpsPlaceholder from "./pages/GpsPlaceholder";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/client" element={<CheckIn />} />
 
         <Route path="/accelerometer" element={<Accelerometer />} />
+        <Route path="/gps" element={<GpsPlaceholder />} />
       </Routes>
     </Router>
   );

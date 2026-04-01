@@ -4,6 +4,7 @@ import { AdminMenu } from "./menu/AdminMenu";
 import "./Dashboard.css";
 import { MahasiswaMenu } from "./menu/MahasiswaMenu";
 import { AccelMenu } from "./menu/AccelMenu";
+import { GpsMenu } from "./menu/GpsMenu";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -11,12 +12,8 @@ export default function Dashboard() {
 
   const handleNavigation = (path) => {
     setIsLoading(true);
-
-    // Memberikan sedikit efek delay agar transisi terasa halus
     setTimeout(() => {
       navigate(path);
-      // Jika kamu TIDAK pakai react-router-dom, ganti baris di atas dengan:
-      // window.location.href = path;
     }, 300);
   };
 
@@ -37,6 +34,9 @@ export default function Dashboard() {
 
           {/* Tombol Accelerometer */}
           <AccelMenu handleNavigation={handleNavigation} />
+
+          {/* Tombol GPS (placeholder) */}
+          <GpsMenu handleNavigation={handleNavigation} />
         </div>
 
         {/* Teks Loading */}

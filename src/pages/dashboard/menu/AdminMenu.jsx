@@ -3,8 +3,8 @@ export function AdminMenu({ handleNavigation }) {
     <>
       <div className="menu-btn" onClick={() => handleNavigation("/admin")}>
         <div className="menu-icon">👨‍🏫</div>
-        <h3>Dosen / Admin</h3>
-        <p>Generate QR Code, kelola sesi kelas, dan pantau kehadiran.</p>
+        <h3>Dosen</h3>
+        <p>Generate QR dinamis untuk sesi kuliah dan pantau kehadiran.</p>
       </div>
     </>
   );

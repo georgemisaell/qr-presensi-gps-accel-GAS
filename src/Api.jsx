@@ -17,13 +17,3 @@ export async function checkIn(payload) {
 
   return response.json();
 }
-
-// Di dalam file Api.js
-export const sendGps = async (payload) => {
-  const url = `${BASE_URL}?path=sensor/gps`;
-  const response = await fetch(url, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-  return response.json();
-};
