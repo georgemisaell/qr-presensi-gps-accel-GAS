@@ -17,10 +17,6 @@ export default function Admin() {
   const [isFetchingPresence, setIsFetchingPresence] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const courseOptions = [{ value: "cloud-101", label: "Cloud Computing" }];
-
-  const sessionOptions = [{ value: "sesi-02", label: "Sesi 2" }];
-
   const resetView = () => {
     setIsQrAutoRunning(false);
     setQrToken("");
@@ -99,7 +95,7 @@ export default function Admin() {
         return true;
       }
       alert(json.error || "Gagal generate QR");
-    } catch (_error) {
+    } catch {
       alert("Gagal generate QR");
       setIsQrAutoRunning(false);
     } finally {
@@ -145,7 +141,7 @@ export default function Admin() {
         alert(json.error || "Gagal menghapus presensi.");
         fetchPresence(); // rollback
       }
-    } catch (_err) {
+    } catch {
       alert("Gagal terhubung ke server.");
       fetchPresence(); // rollback
     }
@@ -178,40 +174,32 @@ export default function Admin() {
               <span className="admin-field-label">Mata Kuliah</span>
               <span className="admin-field-control">
                 <span className="admin-field-icon">#</span>
-                <select
+                <input
+                  type="text"
                   value={course}
                   onChange={(e) => {
                     setCourse(e.target.value);
                     resetView();
                   }}
                   className="input-select"
-                >
-                  {courseOptions.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Contoh: cloud-101"
+                />
               </span>
             </label>
             <label className="admin-field">
               <span className="admin-field-label">Sesi / Pertemuan</span>
               <span className="admin-field-control">
                 <span className="admin-field-icon">@</span>
-                <select
+                <input
+                  type="text"
                   value={session}
                   onChange={(e) => {
                     setSession(e.target.value);
                     resetView();
                   }}
                   className="input-select"
-                >
-                  {sessionOptions.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Contoh: sesi-01"
+                />
               </span>
             </label>
           </div>
