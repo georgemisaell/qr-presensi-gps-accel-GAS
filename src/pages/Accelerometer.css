@@ -85,6 +85,50 @@
   word-break: break-all;
 }
 
+.accel-latest-card {
+  text-align: left;
+  background: linear-gradient(180deg, #f8fbff, #eef6ff);
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.accel-latest-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.accel-latest-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.accel-latest-grid div {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.55rem 0.6rem;
+}
+
+.accel-latest-grid span {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-bottom: 0.2rem;
+}
+
+.accel-latest-grid strong {
+  font-size: 0.88rem;
+  color: #0f172a;
+  word-break: break-all;
+}
+
 /* ─── Sensor value grid ──────────────────────────────────── */
 .accel-sensor-grid {
   display: grid;
@@ -211,6 +255,10 @@
 
   .accel-title {
     font-size: 1.35rem;
+  }
+
+  .accel-latest-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .accel-sensor-value {

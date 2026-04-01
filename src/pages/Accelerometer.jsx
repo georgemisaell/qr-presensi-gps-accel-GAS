@@ -31,6 +31,7 @@ export default function Accelerometer() {
   // State
   const [deviceId] = useState(getOrCreateDeviceId);
   const [vals, setVals] = useState({ x: 0, y: 0, z: 0 });
+  const [latestSample, setLatestSample] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [statusMsg, setStatusMsg] = useState(
     "Standby. Tekan mulai untuk merekam.",
@@ -43,19 +44,44 @@ export default function Accelerometer() {
     const payload = {
       device_id: deviceId,
       ts: new Date().toISOString(),
-      data: [...dataBufferRef.current],
+      samples: [...dataBufferRef.current],
     };
     dataBufferRef.current = [];
 
-    fetch(`${BASE_URL}?path=sensor/accel/batch`, {
+    fetch(`${BASE_URL}?path=telemetry/accel`, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
       redirect: "follow",
     })
       .then((r) => r.json())
-      .then((res) => console.log("Batch terkirim:", res))
+      .then((res) => {
+        console.log("Batch terkirim:", res);
+        if (res?.ok) {
+          setStatusMsg(`Batch terkirim: ${res.data?.accepted ?? 0} data`);
+          setStatusType("recording");
+        }
+      })
       .catch((err) => console.error("Gagal mengirim batch:", err));
+  }, [deviceId]);
+
+  const fetchLatestSample = useCallback(async () => {
+    try {
+      const query = new URLSearchParams({
+        path: "telemetry/accel/latest",
+        device_id: deviceId,
+        _t: String(Date.now()),
+      });
+      const response = await fetch(`${BASE_URL}?${query.toString()}`, {
+        cache: "no-store",
+      });
+      const json = await response.json();
+      if (json.ok) {
+        setLatestSample(json.data || null);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil latest accel:", error);
+    }
   }, [deviceId]);
 
   // ── Motion handler ─────────────────────────────────────────
@@ -85,10 +111,10 @@ export default function Accelerometer() {
     chart.update();
 
     dataBufferRef.current.push({
+      t: new Date().toISOString(),
       x: parseFloat(x.toFixed(3)),
       y: parseFloat(y.toFixed(3)),
       z: parseFloat(z.toFixed(3)),
-      ts: new Date().toISOString(),
     });
   }, []);
 
@@ -169,6 +195,12 @@ export default function Accelerometer() {
     };
   }, [handleMotion]);
 
+  useEffect(() => {
+    fetchLatestSample();
+    const interval = setInterval(fetchLatestSample, 3000);
+    return () => clearInterval(interval);
+  }, [fetchLatestSample]);
+
   // ── Activate recording ─────────────────────────────────────
   const activateRecording = useCallback(() => {
     isRecordingRef.current = true;
@@ -225,6 +257,28 @@ export default function Accelerometer() {
         <h1 className="accel-title">Data Accelerometer</h1>
         <div className="accel-device-id">Device ID: {deviceId}</div>
 
+        <div className="accel-latest-card">
+          <div className="accel-latest-label">Data terbaru dari server</div>
+          <div className="accel-latest-grid">
+            <div>
+              <span>t</span>
+              <strong>{latestSample?.t || "-"}</strong>
+            </div>
+            <div>
+              <span>x</span>
+              <strong>{latestSample?.x ?? "-"}</strong>
+            </div>
+            <div>
+              <span>y</span>
+              <strong>{latestSample?.y ?? "-"}</strong>
+            </div>
+            <div>
+              <span>z</span>
+              <strong>{latestSample?.z ?? "-"}</strong>
+            </div>
+          </div>
+        </div>
+
         {/* Sensor value boxes */}
         <div className="accel-sensor-grid">
           {[
@@ -253,7 +307,7 @@ export default function Accelerometer() {
             className="accel-btn accel-btn-start"
             onClick={startRecording}
           >
-            Mulai Perekaman
+            Mulai Kirim Batch
           </button>
         ) : (
           <button
