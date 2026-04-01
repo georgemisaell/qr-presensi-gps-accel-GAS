@@ -6,6 +6,7 @@ import {
   Popup,
   Polyline,
   TileLayer,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -63,61 +64,69 @@ async function postGpsPoint(payload) {
   });
 
   const json = await response.json();
-  if (!json.ok) {
-    throw new Error(json.error || "GPS upload failed");
+  if (json.ok) {
+    return json.data;
   }
 
-  return json.data;
+  throw new Error(json.error || "GPS upload failed");
+}
+
+function AutoFitMap({ latestPoint, polylinePoints }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (latestPoint) {
+      map.setView([latestPoint.lat, latestPoint.lng], 16, {
+        animate: true,
+      });
+      return;
+    }
+
+    if (polylinePoints.length > 1) {
+      const bounds = L.latLngBounds(polylinePoints);
+      map.fitBounds(bounds, {
+        padding: [30, 30],
+        maxZoom: 16,
+        animate: true,
+      });
+    }
+  }, [latestPoint, map, polylinePoints]);
+
+  return null;
 }
 
 async function getGpsLatest(deviceId) {
-  const tryPaths = [
-    `telemetry/gps/latest?device_id=${encodeURIComponent(deviceId)}`,
-    `sensor/gps/marker?device_id=${encodeURIComponent(deviceId)}`,
-  ];
-
-  for (const query of tryPaths) {
-    const response = await fetch(`${BASE_URL}?path=${query}`, {
-      cache: "no-store",
-    });
-    const json = await response.json();
-    if (json.ok && json.data) {
-      return normalizeGpsPoint(json.data);
-    }
+  const query = `telemetry/gps/latest?device_id=${encodeURIComponent(deviceId)}`;
+  const response = await fetch(`${BASE_URL}?path=${query}`, {
+    cache: "no-store",
+  });
+  const json = await response.json();
+  if (json.ok && json.data) {
+    return normalizeGpsPoint(json.data);
   }
 
   return null;
 }
 
 async function getGpsHistory(deviceId) {
-  const now = new Date();
-  const from = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
-  const to = now.toISOString();
+  const to = new Date();
+  const from = new Date(to.getTime() - 30 * 60 * 1000);
+  const query = `telemetry/gps/polyline?device_id=${encodeURIComponent(deviceId)}&from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
+  const response = await fetch(`${BASE_URL}?path=${query}`, {
+    cache: "no-store",
+  });
+  const json = await response.json();
+  if (json.ok && json.data) {
+    const items = Array.isArray(json.data.points)
+      ? json.data.points
+      : Array.isArray(json.data)
+        ? json.data
+        : [];
 
-  const tryQueries = [
-    `telemetry/gps/history?device_id=${encodeURIComponent(deviceId)}&limit=${HISTORY_LIMIT}`,
-    `sensor/gps/polyline?device_id=${encodeURIComponent(deviceId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-  ];
-
-  for (const query of tryQueries) {
-    const response = await fetch(`${BASE_URL}?path=${query}`, {
-      cache: "no-store",
-    });
-    const json = await response.json();
-    if (json.ok && json.data) {
-      const items = Array.isArray(json.data.items)
-        ? json.data.items
-        : Array.isArray(json.data.points)
-          ? json.data.points
-          : Array.isArray(json.data)
-            ? json.data
-            : [];
-
-      return items
-        .map((point) => normalizeGpsPoint(point))
-        .filter(Boolean)
-        .slice(-HISTORY_LIMIT);
-    }
+    return items
+      .map((point) => normalizeGpsPoint(point))
+      .filter(Boolean)
+      .slice(-HISTORY_LIMIT);
   }
 
   return [];
@@ -436,6 +445,10 @@ export default function GpsTracking() {
           <div className="gps-map-wrap">
             <MapContainer center={mapCenter} zoom={16} className="gps-map">
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <AutoFitMap
+                latestPoint={latestPoint}
+                polylinePoints={polylinePoints}
+              />
               {polylinePoints.length > 1 ? (
                 <Polyline
                   positions={polylinePoints}
@@ -465,13 +478,3 @@ export default function GpsTracking() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
