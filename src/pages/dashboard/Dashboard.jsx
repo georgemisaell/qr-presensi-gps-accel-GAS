@@ -36,7 +36,7 @@ export default function Dashboard() {
           <MahasiswaMenu handleNavigation={handleNavigation} />
 
           {/* Tombol Accelerometer */}
-          <AccelMenu />
+          <AccelMenu handleNavigation={handleNavigation} />
         </div>
 
         {/* Teks Loading */}
