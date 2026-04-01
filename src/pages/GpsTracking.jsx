@@ -127,6 +127,7 @@ export default function GpsTracking() {
   const navigate = useNavigate();
   const watchIdRef = useRef(null);
   const pollRef = useRef(null);
+  const currentPointRef = useRef(null);
 
   const [deviceId] = useState(getOrCreateGpsDeviceId);
   const [isTracking, setIsTracking] = useState(false);
@@ -137,6 +138,10 @@ export default function GpsTracking() {
   const [history, setHistory] = useState([]);
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    currentPointRef.current = currentPoint;
+  }, [currentPoint]);
 
   const mapCenter = useMemo(() => {
     const point = latestPoint || currentPoint || history[history.length - 1];
@@ -200,24 +205,20 @@ export default function GpsTracking() {
     [deviceId],
   );
 
-  const handlePosition = useCallback(
-    (position) => {
-      const point = {
-        ts: new Date().toISOString(),
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        accuracy_m: position.coords.accuracy,
-      };
+  const handlePosition = useCallback((position) => {
+    const point = {
+      ts: new Date().toISOString(),
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+      accuracy_m: position.coords.accuracy,
+    };
 
-      setCurrentPoint(point);
-      setStatus(
-        `GPS aktif. Lat ${point.lat.toFixed(6)}, Lng ${point.lng.toFixed(6)}`,
-      );
-      setStatusType("tracking");
-      uploadPoint(point);
-    },
-    [uploadPoint],
-  );
+    setCurrentPoint(point);
+    setStatus(
+      `GPS aktif. Lat ${point.lat.toFixed(6)}, Lng ${point.lng.toFixed(6)}`,
+    );
+    setStatusType("tracking");
+  }, []);
 
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
@@ -241,9 +242,8 @@ export default function GpsTracking() {
 
         setIsTracking(true);
         setCurrentPoint(point);
-        setStatus("GPS aktif. Memulai pemantauan...");
+        setStatus("GPS aktif. Data akan dikirim saat Anda menekan Stop.");
         setStatusType("tracking");
-        uploadPoint(point);
 
         if (watchIdRef.current !== null) {
           navigator.geolocation.clearWatch(watchIdRef.current);
@@ -266,17 +266,35 @@ export default function GpsTracking() {
       },
       GEO_OPTIONS,
     );
-  }, [handlePosition, uploadPoint]);
+  }, [handlePosition]);
 
-  const stopTracking = useCallback(() => {
+  const stopTracking = useCallback(async () => {
     if (watchIdRef.current !== null && navigator.geolocation) {
       navigator.geolocation.clearWatch(watchIdRef.current);
     }
     watchIdRef.current = null;
     setIsTracking(false);
-    setStatus("Tracking GPS dihentikan.");
+
+    const finalPoint = currentPointRef.current;
+    if (!finalPoint) {
+      setStatus("Tracking GPS dihentikan. Tidak ada titik yang dikirim.");
+      setStatusType("warning");
+      return;
+    }
+
+    setStatus("Mengirim lokasi terakhir ke server...");
     setStatusType("idle");
-  }, []);
+    await uploadPoint(finalPoint);
+    setStatus("Tracking dihentikan. Lokasi terakhir berhasil dikirim.");
+    setStatusType("idle");
+  }, [uploadPoint]);
+
+  const handleBack = useCallback(async () => {
+    if (isTracking) {
+      await stopTracking();
+    }
+    navigate("/");
+  }, [isTracking, navigate, stopTracking]);
 
   useEffect(() => {
     refreshRemoteData();
@@ -293,11 +311,7 @@ export default function GpsTracking() {
   return (
     <div className="gps-page">
       <div className="gps-top-nav">
-        <button
-          type="button"
-          className="gps-back-btn"
-          onClick={() => navigate("/")}
-        >
+        <button type="button" className="gps-back-btn" onClick={handleBack}>
           Kembali ke Dashboard
         </button>
       </div>
@@ -306,8 +320,8 @@ export default function GpsTracking() {
         <section className="gps-panel fade-in">
           <h1>GPS + Peta</h1>
           <p className="gps-subtitle">
-            Kirim titik GPS periodik ke backend, lihat marker terbaru, dan
-            gambar jejak perjalanan dalam polyline.
+            Pantau pergerakan GPS di klien. Data yang dikirim ke backend hanya
+            titik terakhir saat tracking dihentikan.
           </p>
 
           <div className="gps-device-row">
@@ -329,8 +343,8 @@ export default function GpsTracking() {
               className="gps-input"
               type="text"
               value={
-                latestPoint
-                  ? `${latestPoint.lat.toFixed(6)}, ${latestPoint.lng.toFixed(6)}`
+                currentPoint || latestPoint
+                  ? `${(currentPoint || latestPoint).lat.toFixed(6)}, ${(currentPoint || latestPoint).lng.toFixed(6)}`
                   : "-"
               }
               readOnly
@@ -465,13 +479,3 @@ export default function GpsTracking() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
