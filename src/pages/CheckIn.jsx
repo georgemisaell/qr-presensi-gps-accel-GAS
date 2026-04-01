@@ -7,6 +7,8 @@ import "./CheckIn.css";
 export default function CheckIn() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [sessionId, setSessionId] = useState("");
   const [status, setStatus] = useState("Siap untuk memulai scan.");
   const [isScanning, setIsScanning] = useState(false);
   const scannerRef = useRef(null);
@@ -33,8 +35,14 @@ export default function CheckIn() {
 
   const startScanner = async () => {
     const normalizedUserId = userId.trim();
+    const normalizedCourseId = courseId.trim();
+    const normalizedSessionId = sessionId.trim();
     if (!normalizedUserId) {
       alert("Masukkan User ID terlebih dahulu");
+      return;
+    }
+    if (!normalizedCourseId || !normalizedSessionId) {
+      alert("Masukkan Course ID dan Session ID terlebih dahulu");
       return;
     }
 
@@ -61,6 +69,8 @@ export default function CheckIn() {
             const res = await checkIn({
               user_id: normalizedUserId,
               device_id: deviceId,
+              course_id: normalizedCourseId,
+              session_id: normalizedSessionId,
               qr_token: String(decodedText || "").trim(),
               ts: new Date().toISOString(),
             });
@@ -125,7 +135,7 @@ export default function CheckIn() {
       <div className="checkin-card fade-in">
         <h2 className="checkin-title">Scan QR Presensi</h2>
         <p className="checkin-subtitle">
-          Masukkan User ID lalu scan QR dari dosen.
+          Masukkan User ID, Course ID, Session ID lalu scan QR dari dosen.
         </p>
         <div className="checkin-layout">
           <section className="checkin-panel">
@@ -138,6 +148,28 @@ export default function CheckIn() {
               placeholder="Contoh: 2023xxxx"
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
+            />
+
+            <label className="checkin-field" htmlFor="course-id-input">
+              Course ID
+            </label>
+            <input
+              id="course-id-input"
+              className="checkin-input"
+              placeholder="Contoh: cloud-101"
+              value={courseId}
+              onChange={(e) => setCourseId(e.target.value)}
+            />
+
+            <label className="checkin-field" htmlFor="session-id-input">
+              Session ID
+            </label>
+            <input
+              id="session-id-input"
+              className="checkin-input"
+              placeholder="Contoh: sesi-01"
+              value={sessionId}
+              onChange={(e) => setSessionId(e.target.value)}
             />
 
             <button
