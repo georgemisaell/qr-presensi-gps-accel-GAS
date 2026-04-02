@@ -10,7 +10,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { BASE_URL } from "../Api";
+import { BASE_URL } from "../../Api";
 import "./GpsTracking.css";
 
 import markerIcon from "leaflet/dist/images/marker-icon.png";

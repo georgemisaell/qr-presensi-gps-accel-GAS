@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Dashboard from "./pages/dashboard/Dashboard";
-import CheckIn from "./pages/CheckIn";
-import Admin from "./pages/Admin";
-import Accelerometer from "./pages/Accelerometer";
-import GpsTracking from "./pages/GpsTracking";
+import CheckIn from "./pages/checkin/CheckIn";
+import Admin from "./pages/admin/Admin";
+import Accelerometer from "./pages/accel/Accelerometer";
+import GpsTracking from "./pages/gps/GpsTracking";
 
 export default function App() {
   return (

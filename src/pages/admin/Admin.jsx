@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import "./Admin.css";
-import { BASE_URL } from "../Api";
+import { BASE_URL } from "../../Api";
 
 export default function Admin() {
   const QR_ROTATION_SECONDS = 20;

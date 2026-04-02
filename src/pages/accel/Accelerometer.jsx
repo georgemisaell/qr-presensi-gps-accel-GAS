@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
-import { BASE_URL } from "../Api";
+import { BASE_URL } from "../../Api";
 import "./Accelerometer.css";
 
 const MAX_DATA_POINTS = 50;
