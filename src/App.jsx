@@ -6,6 +6,7 @@ import Admin from "./pages/admin/Admin";
 import Accelerometer from "./pages/accel/Accelerometer";
 import AccelAdmin from "./pages/accel-admin/AccelAdmin";
 import GpsTracking from "./pages/gps/GpsTracking";
+import GpsAdmin from "./pages/gps-admin/GpsAdmin";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/accelerometer" element={<Accelerometer />} />
         <Route path="/accel-admin" element={<AccelAdmin />} />
         <Route path="/gps" element={<GpsTracking />} />
+        <Route path="/gps-admin" element={<GpsAdmin />} />
       </Routes>
     </Router>
   );

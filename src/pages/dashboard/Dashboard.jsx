@@ -6,6 +6,7 @@ import { MahasiswaMenu } from "./menu/MahasiswaMenu";
 import { AccelMenu } from "./menu/AccelMenu";
 import { AccelAdminMenu } from "./menu/AccelAdminMenu";
 import { GpsMenu } from "./menu/GpsMenu";
+import { GpsAdminMenu } from "./menu/GpsAdminMenu";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +42,9 @@ export default function Dashboard() {
 
           {/* Tombol GPS (placeholder) */}
           <GpsMenu handleNavigation={handleNavigation} />
+
+          {/* Tombol Admin GPS */}
+          <GpsAdminMenu handleNavigation={handleNavigation} />
         </div>
 
         {/* Teks Loading */}
