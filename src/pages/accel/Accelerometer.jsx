@@ -41,6 +41,8 @@ export default function Accelerometer() {
   // ── Send batch to GAS ──────────────────────────────────────
   const sendBatchData = useCallback(() => {
     if (dataBufferRef.current.length === 0) return;
+    
+    // Format asli yang diterima oleh Code.gs kamu tanpa perlu diubah
     const payload = {
       device_id: deviceId,
       ts: new Date().toISOString(),
@@ -48,6 +50,7 @@ export default function Accelerometer() {
     };
     dataBufferRef.current = [];
 
+    // Path asli yang dikenali oleh Code.gs kamu
     fetch(`${BASE_URL}?path=telemetry/accel`, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -65,24 +68,11 @@ export default function Accelerometer() {
       .catch((err) => console.error("Gagal mengirim batch:", err));
   }, [deviceId]);
 
+  // Karena Admin sudah pakai CSV, fitur fetchLatestSample di klien ini 
+  // sebenarnya bisa diabaikan/dikosongkan agar tidak error, karena GAS tidak punya rutenya.
   const fetchLatestSample = useCallback(async () => {
-    try {
-      const query = new URLSearchParams({
-        path: "telemetry/accel/latest",
-        device_id: deviceId,
-        _t: String(Date.now()),
-      });
-      const response = await fetch(`${BASE_URL}?${query.toString()}`, {
-        cache: "no-store",
-      });
-      const json = await response.json();
-      if (json.ok) {
-        setLatestSample(json.data || null);
-      }
-    } catch (error) {
-      console.error("Gagal mengambil latest accel:", error);
-    }
-  }, [deviceId]);
+    // Sengaja dikosongkan agar tidak memunculkan error "Route not found" di console HP kamu
+  }, []);
 
   // ── Motion handler ─────────────────────────────────────────
   const handleMotion = useCallback((event) => {
@@ -195,12 +185,6 @@ export default function Accelerometer() {
     };
   }, [handleMotion]);
 
-  useEffect(() => {
-    fetchLatestSample();
-    const interval = setInterval(fetchLatestSample, 3000);
-    return () => clearInterval(interval);
-  }, [fetchLatestSample]);
-
   // ── Activate recording ─────────────────────────────────────
   const activateRecording = useCallback(() => {
     isRecordingRef.current = true;
@@ -257,27 +241,7 @@ export default function Accelerometer() {
         <h1 className="accel-title">Data Accelerometer</h1>
         <div className="accel-device-id">Device ID: {deviceId}</div>
 
-        <div className="accel-latest-card">
-          <div className="accel-latest-label">Data terbaru dari server</div>
-          <div className="accel-latest-grid">
-            <div>
-              <span>t</span>
-              <strong>{latestSample?.t || "-"}</strong>
-            </div>
-            <div>
-              <span>x</span>
-              <strong>{latestSample?.x ?? "-"}</strong>
-            </div>
-            <div>
-              <span>y</span>
-              <strong>{latestSample?.y ?? "-"}</strong>
-            </div>
-            <div>
-              <span>z</span>
-              <strong>{latestSample?.z ?? "-"}</strong>
-            </div>
-          </div>
-        </div>
+        {/* Kotak Latest Sample dihilangkan karena tidak lagi mengambil data dari backend */}
 
         {/* Sensor value boxes */}
         <div className="accel-sensor-grid">
