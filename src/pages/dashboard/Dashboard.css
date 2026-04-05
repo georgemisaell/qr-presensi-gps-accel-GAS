@@ -121,3 +121,23 @@
 .fade-in {
   animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ─── Admin Accel menu button variant ─── */
+.menu-btn--accent-admin {
+  background: linear-gradient(145deg, #f5f3ff, #ede9fe);
+  border-color: #c4b5fd;
+}
+
+.menu-btn--accent-admin:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 15px 30px rgba(124, 58, 237, 0.15);
+}
+
+.menu-btn--accent-admin h3 {
+  color: #3b0764;
+}
+
+.menu-icon--admin {
+  background: #ede9fe;
+  color: #7c3aed;
+}

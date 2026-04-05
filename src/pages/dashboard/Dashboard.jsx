@@ -4,6 +4,7 @@ import { AdminMenu } from "./menu/AdminMenu";
 import "./Dashboard.css";
 import { MahasiswaMenu } from "./menu/MahasiswaMenu";
 import { AccelMenu } from "./menu/AccelMenu";
+import { AccelAdminMenu } from "./menu/AccelAdminMenu";
 import { GpsMenu } from "./menu/GpsMenu";
 
 export default function Dashboard() {
@@ -32,8 +33,11 @@ export default function Dashboard() {
           {/* Tombol Mahasiswa */}
           <MahasiswaMenu handleNavigation={handleNavigation} />
 
-          {/* Tombol Accelerometer */}
+          {/* Tombol Accelerometer Client */}
           <AccelMenu handleNavigation={handleNavigation} />
+
+          {/* Tombol Admin Accelerometer */}
+          <AccelAdminMenu handleNavigation={handleNavigation} />
 
           {/* Tombol GPS (placeholder) */}
           <GpsMenu handleNavigation={handleNavigation} />
