@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Chart from "chart.js/auto";
+import { BASE_URL } from "../../Api";
 import "./AccelAdmin.css";
 
-// Masukkan link CSV publik kamu di sini
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsFoXju_o_UqDfM5W4BEwxlC1o8VqrPPUfuhfDUcv3a_LRQ2_zeQx5d1OBbveGXhlYfQyK2LueRO65/pub?gid=1920677518&single=true&output=csv";
-
 const POLL_INTERVAL_MS = 3000;
+const HISTORY_INTERVAL_MS = 5000;
 const MAX_CHART_POINTS = 60;
 const MAX_TABLE_ROWS = 50;
 
@@ -24,89 +23,86 @@ export default function AccelAdmin() {
   const [statusType, setStatusType] = useState("idle");
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const pollCsvRef = useRef(null);
+  const pollLatestRef = useRef(null);
+  const pollHistoryRef = useRef(null);
   const isMonitoringRef = useRef(false);
   const lastChartTsRef = useRef(null);
 
-  // Fungsi untuk mem-parsing teks CSV menjadi array object
-  const parseCSV = (csvText, devId) => {
-    // Pisahkan baris
-    const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
-    if (lines.length <= 1) return []; // Hanya header atau kosong
+  const appendLatestToTable = useCallback((d) => {
+    setTableRows((prev) => {
+      if (prev.length > 0 && prev[0].t === d.t) return prev;
+      return [{ ...d, _key: `${d.t}-${Date.now()}` }, ...prev].slice(0, MAX_TABLE_ROWS);
+    });
+  }, []);
 
-    const parsedData = [];
-    // Looping dari bawah (terbaru) ke atas (terlama)
-    for (let i = lines.length - 1; i >= 1; i--) {
-      // Asumsi format kolom: [device_id, x, y, z, sample_ts, batch_ts, recorded_at]
-      const cols = lines[i].split(",");
-      if (cols.length < 6) continue;
-      
-      const rowDevId = cols[0].trim();
-      if (rowDevId === devId) {
-        parsedData.push({
-          x: parseFloat(cols[1]) || 0,
-          y: parseFloat(cols[2]) || 0,
-          z: parseFloat(cols[3]) || 0,
-          t: cols[4] || cols[5], // Pakai sample_ts, kalau kosong pakai batch_ts
-        });
-      }
-    }
-    return parsedData;
-  };
-
-  // Fetch data langsung dari CSV Google Sheets
-  const fetchDataFromCSV = useCallback(async (devId) => {
+  const fetchLatestWithFallback = useCallback(async (devId) => {
     try {
-      // Tambahkan parameter _t agar tidak kena cache browser
-      const url = `${CSV_URL}&_t=${Date.now()}`;
-      const res = await fetch(url, { cache: "no-store" });
-      const text = await res.text();
+      const query = new URLSearchParams({
+        path: "telemetry/accel/latest",
+        device_id: devId,
+        _t: String(Date.now()),
+      });
+      const res = await fetch(`${BASE_URL}?${query.toString()}`, { cache: "no-store" });
+      const json = await res.json();
 
-      const allDeviceData = parseCSV(text, devId);
-
-      if (allDeviceData.length > 0) {
-        const latest = allDeviceData[0]; // Data paling atas (karena di-loop mundur)
-
-        setLatestData(latest);
+      if (json.ok && json.data) {
+        const d = json.data;
+        setLatestData(d);
         setLastUpdated(new Date());
-        setStatusMsg(`✅ Live — device: ${devId}`);
+        setStatusMsg(`✅ Live API — device: ${devId}`);
         setStatusType("active");
 
-        // Update grafik hanya kalau timestamp baru
         const chart = chartRef.current;
-        if (chart && latest.t !== lastChartTsRef.current) {
-          lastChartTsRef.current = latest.t;
-          const label = latest.t
-            ? new Date(latest.t).toLocaleTimeString("id-ID", { hour12: false })
+        if (chart && d.t !== lastChartTsRef.current) {
+          lastChartTsRef.current = d.t;
+          const label = d.t
+            ? new Date(d.t).toLocaleTimeString("id-ID", { hour12: false })
             : new Date().toLocaleTimeString("id-ID", { hour12: false });
-          
           chart.data.labels.push(label);
-          chart.data.datasets[0].data.push(latest.x);
-          chart.data.datasets[1].data.push(latest.y);
-          chart.data.datasets[2].data.push(latest.z);
-          
+          chart.data.datasets[0].data.push(d.x ?? 0);
+          chart.data.datasets[1].data.push(d.y ?? 0);
+          chart.data.datasets[2].data.push(d.z ?? 0);
           if (chart.data.labels.length > MAX_CHART_POINTS) {
             chart.data.labels.shift();
             chart.data.datasets.forEach((ds) => ds.data.shift());
           }
           chart.update("none");
         }
-
-        // Update Tabel (ambil sesuai maksimal baris)
-        const topTableData = allDeviceData.slice(0, MAX_TABLE_ROWS).map((r, i) => ({
-          ...r,
-          _key: `csv-${r.t}-${i}`
-        }));
-        setTableRows(topTableData);
-
+        appendLatestToTable(d);
       } else {
         setStatusMsg(`⚠️ Belum ada data untuk device: ${devId}`);
         setStatusType("warning");
       }
     } catch (err) {
-      console.error("Fetch CSV error:", err);
-      setStatusMsg("❌ Gagal membaca CSV Google Sheets.");
+      console.error("Poll latest error:", err);
+      setStatusMsg("❌ Gagal terhubung ke server GAS.");
       setStatusType("error");
+    }
+  }, [appendLatestToTable]);
+
+  const fetchHistory = useCallback(async (devId) => {
+    try {
+      const query = new URLSearchParams({
+        path: "telemetry/accel/history",
+        device_id: devId,
+        limit: String(MAX_TABLE_ROWS),
+        _t: String(Date.now()),
+      });
+      const res = await fetch(`${BASE_URL}?${query.toString()}`, { cache: "no-store" });
+      const json = await res.json();
+
+      if (json.ok && json.data) {
+        const raw = json.data.items ?? json.data.samples ?? (Array.isArray(json.data) ? json.data : null);
+        if (Array.isArray(raw) && raw.length > 0) {
+          const sorted = [...raw]
+            .sort((a, b) => new Date(b.t) - new Date(a.t))
+            .slice(0, MAX_TABLE_ROWS)
+            .map((r, i) => ({ ...r, _key: `hist-${r.t}-${i}` }));
+          setTableRows(sorted);
+        }
+      }
+    } catch (err) {
+      console.warn("History endpoint error:", err);
     }
   }, []);
 
@@ -123,7 +119,7 @@ export default function AccelAdmin() {
     setTableRows([]);
     setLatestData(null);
     lastChartTsRef.current = null;
-    setStatusMsg(`🔄 Membaca data langsung dari Google Sheets: ${id} ...`);
+    setStatusMsg(`🔄 Menghubungkan API ke: ${id} ...`);
     setStatusType("connecting");
 
     const chart = chartRef.current;
@@ -133,20 +129,23 @@ export default function AccelAdmin() {
       chart.update("none");
     }
 
-    // Fetch langsung pertama kali
-    fetchDataFromCSV(id);
+    fetchLatestWithFallback(id);
+    fetchHistory(id);
 
-    // Polling setiap 3 detik
-    pollCsvRef.current = setInterval(() => {
-      if (isMonitoringRef.current) fetchDataFromCSV(id);
+    pollLatestRef.current = setInterval(() => {
+      if (isMonitoringRef.current) fetchLatestWithFallback(id);
     }, POLL_INTERVAL_MS);
 
-  }, [deviceIdInput, fetchDataFromCSV]);
+    pollHistoryRef.current = setInterval(() => {
+      if (isMonitoringRef.current) fetchHistory(id);
+    }, HISTORY_INTERVAL_MS);
+  }, [deviceIdInput, fetchLatestWithFallback, fetchHistory]);
 
   const stopMonitor = useCallback(() => {
     isMonitoringRef.current = false;
     setIsMonitoring(false);
-    clearInterval(pollCsvRef.current);
+    clearInterval(pollLatestRef.current);
+    clearInterval(pollHistoryRef.current);
     setStatusMsg("Monitor dihentikan.");
     setStatusType("stopped");
   }, []);
@@ -181,7 +180,8 @@ export default function AccelAdmin() {
 
     return () => {
       chartRef.current?.destroy();
-      clearInterval(pollCsvRef.current);
+      clearInterval(pollLatestRef.current);
+      clearInterval(pollHistoryRef.current);
       isMonitoringRef.current = false;
     };
   }, []);
@@ -196,12 +196,12 @@ export default function AccelAdmin() {
         <button type="button" className="aa-back-btn" onClick={() => { stopMonitor(); navigate("/"); }}>
           ← Kembali ke Dashboard
         </button>
-        <span className="aa-badge">Admin Monitor (CSV Direct)</span>
+        <span className="aa-badge">Admin Monitor API</span>
       </div>
 
       <div className="aa-wrap fade-in">
         <h1 className="aa-title">📊 Admin Accelerometer</h1>
-        <p className="aa-subtitle">Monitor data sensor secara live (Bypass via Google Sheets)</p>
+        <p className="aa-subtitle">Monitor data sensor secara live (Real-time via GAS API)</p>
 
         <div className="aa-control-row">
           <input
@@ -272,7 +272,7 @@ export default function AccelAdmin() {
                 {tableRows.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="aa-table-empty">
-                      {isMonitoring ? "Menunggu data masuk dari Google Sheets..." : "Belum ada data. Mulai monitor untuk melihat data."}
+                      {isMonitoring ? "Menunggu data masuk dari API..." : "Belum ada data. Mulai monitor untuk melihat data."}
                     </td>
                   </tr>
                 ) : (

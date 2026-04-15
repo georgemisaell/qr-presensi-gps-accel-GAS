@@ -1,16 +1,117 @@
-# React + Vite
+📱 QR Presensi 
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+📌 Deskripsi
+QR Presensi merupakan aplikasi berbasis web yang digunakan untuk sistem presensi (absensi) digital dengan memanfaatkan teknologi QR Code dan GPS. Aplikasi ini memungkinkan mahasiswa melakukan check-in secara cepat dan akurat, serta menyediakan fitur monitoring bagi admin melalui dashboard interaktif.
+Aplikasi dikembangkan menggunakan React dan Vite dengan konsep Single Page Application (SPA), sehingga memberikan performa yang cepat, efisien, dan responsif.
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+📄Tujuan Pengembangan
+Menggantikan sistem presensi manual menjadi digital
+Meningkatkan efisiensi dan kecepatan proses absensi
+Mengurangi potensi kecurangan dalam presensi
+Mengintegrasikan teknologi QR Code dan GPS dalam satu platform
+Menyediakan dashboard monitoring berbasis web
 
-## React Compiler
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+📄Fitur Utama
+👨‍🎓 Mahasiswa
+Melakukan scan QR Code untuk presensi
+Check-in kehadiran secara real-time
+Mengakses halaman dashboard mahasiswa
 
-## Expanding the ESLint configuration
+👨‍💼 Admin
+Monitoring data presensi pengguna
+Mengelola tampilan dashboard
+Mengakses menu khusus admin
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+📍 GPS Tracking
+Mengambil lokasi pengguna saat presensi
+Validasi lokasi untuk memastikan kehadiran yang valid
+Integrasi dengan peta digital
+
+📊 Dashboard
+Menampilkan data dalam bentuk visual
+Navigasi berbasis role (admin / mahasiswa)
+Menu terstruktur untuk tiap fitur
+
+📱 Accelerometer
+Mengakses sensor perangkat pengguna
+Digunakan untuk fitur tambahan berbasis pergerakan
+
+🛠️ Teknologi yang Digunakan
+Teknologi	Fungsi
+React	Framework frontend
+Vite	Build tool & development server
+Chart.js	Visualisasi data
+html5-qrcode	Scan QR Code
+Leaflet & React-Leaflet	Peta dan GPS
+React Router DOM	Navigasi halaman
+
+
+📂 Struktur Folder Project (Detail)
+src/
+ ├── assets/  
+ │   → Menyimpan file statis seperti gambar dan resource lainnya
+ │
+ ├── pages/
+ │   ├── dashboard/
+ │   │   → Halaman utama setelah user masuk (berisi menu navigasi)
+ │   │
+ │   ├── admin/
+ │   │   → Halaman khusus admin untuk pengelolaan sistem
+ │   │
+ │   ├── accel/
+ │   │   → Fitur pembacaan sensor accelerometer perangkat
+ │   │
+ │   ├── accel-admin/
+ │   │   → Kombinasi fitur admin dan sensor accelerometer
+ │   │
+ │   ├── checkin/
+ │   │   → Halaman utama untuk scan QR Code (presensi)
+ │   │
+ │   ├── gps/
+ │   │   → Halaman untuk tracking dan validasi lokasi pengguna
+ │
+ ├── Api.jsx
+ │   → Konfigurasi endpoint API (komunikasi frontend-backend)
+ │
+ ├── App.jsx
+ │   → Root component (pengatur routing utama aplikasi)
+ │
+ ├── main.jsx
+ │   → Entry point aplikasi React
+ │
+ ├── index.css
+ │   → Styling global aplikasi
+
+
+⚙️ Cara Instalasi & Menjalankan Project
+1. Clone Repository
+git clone https://github.com/georgemisaell/qr-presensi-frontend.git
+cd qr-presensi-frontend
+2. Install Dependency
+npm install
+3. Jalankan Project
+npm run dev
+4. Akses Aplikasi
+
+Buka browser dan akses:
+http://localhost:5173
+
+
+🔄 Alur Sistem Aplikasi
+User membuka aplikasi melalui browser
+User masuk ke halaman dashboard
+Mahasiswa memilih menu check-in
+Sistem mengaktifkan kamera untuk scan QR Code
+Data presensi dikirim ke sistem
+Lokasi pengguna diambil menggunakan GPS
+Sistem melakukan validasi lokasi
+Data tersimpan dan dapat dipantau oleh admin
+
+
+📊 Analisis Sistem
+Sistem berbasis client-side rendering (React)
+Menggunakan REST API untuk komunikasi data
+Mengintegrasikan hardware device (kamera & GPS)
+Mendukung multi-role (admin & mahasiswa)
