@@ -47,13 +47,13 @@ export default function GpsAdmin() {
 
           // latest
           const latestRes = await fetch(
-            `${BASE_URL}/telemetry/gps/latest?device_id=${device_id}`
+            `${BASE_URL}path=telemetry/gps/latest?device_id=${device_id}`
           );
           const latestJson = await latestRes.json();
 
           // history
           const historyRes = await fetch(
-            `${BASE_URL}/telemetry/gps/history?device_id=${device_id}&limit=100`
+            `${BASE_URL}path=telemetry/gps/history?device_id=${device_id}&limit=100`
           );
           const historyJson = await historyRes.json();
 
@@ -101,10 +101,11 @@ export default function GpsAdmin() {
   }, [devices]);
 
   // filter device
-  const filteredDevices =
-    selectedDevice === "all"
-      ? devicesData
-      : devicesData.filter((d) => d.device_id === selectedDevice);
+  const filteredDevices = devicesData.filter((d) =>
+    selectedDevice
+      ? d.device_id.toLowerCase().includes(selectedDevice.toLowerCase())
+      : true
+  );
 
   return (
     <div className="gps-admin-page">
@@ -126,9 +127,17 @@ export default function GpsAdmin() {
             <input
               className="gps-admin-input"
               type="text"
-              placeholder="Masukkan device_id"
-              value={inputDevice}
-              onChange={(e) => setInputDevice(e.target.value)}
+              placeholder="Filter device_id (kosong = semua)"
+              value={selectedDevice}
+              onChange={(e) => setSelectedDevice(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (inputDevice && !devices.includes(inputDevice)) {
+                    setDevices([...devices, inputDevice]);
+                    setInputDevice("");
+                  }
+                }
+              }}
             />
 
             <button
@@ -142,19 +151,6 @@ export default function GpsAdmin() {
             >
               Tambah
             </button>
-
-            <select
-              className="gps-admin-select"
-              value={selectedDevice}
-              onChange={(e) => setSelectedDevice(e.target.value)}
-            >
-              <option value="all">Semua Device</option>
-              {devices.map((dev, i) => (
-                <option key={i} value={dev}>
-                  {dev}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/*MAP BESAR */}

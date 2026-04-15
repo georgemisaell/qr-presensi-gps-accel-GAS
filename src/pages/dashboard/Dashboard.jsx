@@ -31,20 +31,20 @@ export default function Dashboard() {
           {/* Tombol Admin */}
           <AdminMenu handleNavigation={handleNavigation} />
 
+          {/* Tombol Admin Accelerometer */}
+          <AccelAdminMenu handleNavigation={handleNavigation} />
+
+          {/* Tombol Admin GPS */}
+          <GpsAdminMenu handleNavigation={handleNavigation} />
+
           {/* Tombol Mahasiswa */}
           <MahasiswaMenu handleNavigation={handleNavigation} />
 
           {/* Tombol Accelerometer Client */}
           <AccelMenu handleNavigation={handleNavigation} />
 
-          {/* Tombol Admin Accelerometer */}
-          <AccelAdminMenu handleNavigation={handleNavigation} />
-
           {/* Tombol GPS (placeholder) */}
           <GpsMenu handleNavigation={handleNavigation} />
-
-          {/* Tombol Admin GPS */}
-          <GpsAdminMenu handleNavigation={handleNavigation} />
         </div>
 
         {/* Teks Loading */}
