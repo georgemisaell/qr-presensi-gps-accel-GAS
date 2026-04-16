@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MapContainer,
@@ -38,6 +38,21 @@ function AutoFitMap({ latestPoint, polylinePoints }) {
   }, [latestPoint, map, polylinePoints]);
 
   return null;
+}
+
+function normalizePoint(point) {
+  if (!point) return null;
+
+  const lat = Number(point.lat ?? point.latitude);
+  const lng = Number(point.lng ?? point.lon ?? point.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  return {
+    ts: point.ts || point.time || point.recorded_at || point.waktu || "",
+    lat,
+    lng,
+    accuracy_m: point.accuracy_m ?? point.accuracy ?? null,
+  };
 }
 
 const createIcon = (color) =>
@@ -87,6 +102,9 @@ export default function GpsAdmin() {
           );
           const historyJson = await historyRes.json();
 
+          // Normalize latest point
+          const latestPoint = normalizePoint(latestJson.ok ? latestJson.data : null);
+
           // Normalize history data
           let history = [];
           if (historyJson.ok && historyJson.data) {
@@ -95,20 +113,17 @@ export default function GpsAdmin() {
               : Array.isArray(historyJson.data)
                 ? historyJson.data
                 : [];
-            history = items.map((item) => [
-              Number(item.lat),
-              Number(item.lng),
-            ]).filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+            history = items
+              .map(normalizePoint)
+              .filter(Boolean)
+              .map((point) => [point.lat, point.lng]);
           }
 
           return {
             device_id,
             color,
-            position:
-              latestJson.ok && latestJson.data
-                ? [latestJson.data.lat, latestJson.data.lng]
-                : null,
-            history: history,
+            position: latestPoint ? [latestPoint.lat, latestPoint.lng] : null,
+            history,
           };
         })
       );
@@ -137,13 +152,11 @@ export default function GpsAdmin() {
       );
       const historyJson = await historyRes.json();
 
-      if (latestJson.ok && latestJson.data) {
-        setSelectedDeviceLatest({
-          ts: latestJson.data.ts || latestJson.data.time || new Date().toISOString(),
-          lat: latestJson.data.lat,
-          lng: latestJson.data.lng,
-          accuracy_m: latestJson.data.accuracy_m || latestJson.data.accuracy || null,
-        });
+      const latestPoint = normalizePoint(latestJson.ok ? latestJson.data : null);
+      if (latestPoint) {
+        setSelectedDeviceLatest(latestPoint);
+      } else {
+        setSelectedDeviceLatest(null);
       }
 
       if (historyJson.ok && historyJson.data) {
@@ -152,13 +165,12 @@ export default function GpsAdmin() {
           : Array.isArray(historyJson.data)
             ? historyJson.data
             : [];
-        const historyItems = items.map((item) => ({
-          ts: item.ts || item.time || "",
-          lat: item.lat,
-          lng: item.lng,
-          accuracy_m: item.accuracy_m || item.accuracy || null,
-        }));
+        const historyItems = items
+          .map(normalizePoint)
+          .filter(Boolean);
         setSelectedDeviceHistory(historyItems);
+      } else {
+        setSelectedDeviceHistory([]);
       }
     } catch (err) {
       console.error("Error fetching selected device data:", err);
@@ -206,13 +218,6 @@ export default function GpsAdmin() {
   useEffect(() => {
     localStorage.setItem("gps_devices", JSON.stringify(devices));
   }, [devices]);
-
-  // filter device
-  const filteredDevices = devicesData.filter((d) =>
-    selectedDevice
-      ? d.device_id.toLowerCase().includes(selectedDevice.toLowerCase())
-      : true
-  );
 
   return (
     <div className="gps-admin-page">
@@ -441,9 +446,9 @@ export default function GpsAdmin() {
                 width: "100%"
               }}
             >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {filteredDevices.map((dev, index) => (
-                <div key={index}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              {devicesData.map((dev, index) => (
+                <Fragment key={index}>
                   {dev.position && (
                     <Marker
                       position={dev.position}
@@ -465,16 +470,18 @@ export default function GpsAdmin() {
                     </Marker>
                   )}
 
-                  <Polyline
-                    positions={dev.history}
-                    pathOptions={{
-                      color: dev.color,
-                      weight: 3,
-                      opacity: 0.7,
-                      dashArray: "5, 10"
-                    }}
-                  />
-                </div>
+                  {dev.history.length > 0 && (
+                    <Polyline
+                      positions={dev.history}
+                      pathOptions={{
+                        color: dev.color,
+                        weight: 3,
+                        opacity: 0.7,
+                        dashArray: "5, 10"
+                      }}
+                    />
+                  )}
+                </Fragment>
               ))}
             </MapContainer>
           </div>
