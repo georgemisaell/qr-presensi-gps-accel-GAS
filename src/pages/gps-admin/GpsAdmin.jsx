@@ -6,6 +6,7 @@ import {
   Marker,
   Polyline,
   Popup,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -14,6 +15,30 @@ import "./GpsAdmin.css";
 import { BASE_URL } from "../../Api";
 
 const COLORS = ["red", "blue", "green", "orange", "purple"];
+
+function AutoFitMap({ latestPoint, polylinePoints }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (latestPoint) {
+      map.setView([latestPoint.lat, latestPoint.lng], 16, {
+        animate: true,
+      });
+      return;
+    }
+
+    if (polylinePoints.length > 1) {
+      const bounds = L.latLngBounds(polylinePoints);
+      map.fitBounds(bounds, {
+        padding: [30, 30],
+        maxZoom: 16,
+        animate: true,
+      });
+    }
+  }, [latestPoint, map, polylinePoints]);
+
+  return null;
+}
 
 const createIcon = (color) =>
   new L.Icon({
@@ -34,6 +59,8 @@ export default function GpsAdmin() {
   const [loading, setLoading] = useState(false);
   const [selectedDeviceLatest, setSelectedDeviceLatest] = useState(null);
   const [selectedDeviceHistory, setSelectedDeviceHistory] = useState([]);
+  const [mapCenter, setMapCenter] = useState([-7.2575, 112.7521]);
+  const [polylinePoints, setPolylinePoints] = useState([]);
 
   // fetch semua device
   const fetchAll = async () => {
@@ -52,11 +79,27 @@ export default function GpsAdmin() {
           );
           const latestJson = await latestRes.json();
 
-          // history
+          // history dengan polyline endpoint (same as GpsTracking)
+          const to = new Date();
+          const from = new Date(to.getTime() - 30 * 60 * 1000);
           const historyRes = await fetch(
-            `${BASE_URL}?path=telemetry/gps/history?device_id=${device_id}&limit=100`
+            `${BASE_URL}?path=telemetry/gps/polyline?device_id=${device_id}&from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`
           );
           const historyJson = await historyRes.json();
+
+          // Normalize history data
+          let history = [];
+          if (historyJson.ok && historyJson.data) {
+            const items = Array.isArray(historyJson.data.points)
+              ? historyJson.data.points
+              : Array.isArray(historyJson.data)
+                ? historyJson.data
+                : [];
+            history = items.map((item) => [
+              Number(item.lat),
+              Number(item.lng),
+            ]).filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+          }
 
           return {
             device_id,
@@ -65,13 +108,7 @@ export default function GpsAdmin() {
               latestJson.ok && latestJson.data
                 ? [latestJson.data.lat, latestJson.data.lng]
                 : null,
-            history:
-              historyJson.ok && historyJson.data?.items
-                ? historyJson.data.items.map((item) => [
-                    item.lat,
-                    item.lng,
-                  ])
-                : [],
+            history: history,
           };
         })
       );
@@ -92,8 +129,11 @@ export default function GpsAdmin() {
       );
       const latestJson = await latestRes.json();
 
+      // history dengan polyline endpoint (same as GpsTracking)
+      const to = new Date();
+      const from = new Date(to.getTime() - 30 * 60 * 1000);
       const historyRes = await fetch(
-        `${BASE_URL}?path=telemetry/gps/history?device_id=${deviceId}&limit=100`
+        `${BASE_URL}?path=telemetry/gps/polyline?device_id=${deviceId}&from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`
       );
       const historyJson = await historyRes.json();
 
@@ -106,8 +146,13 @@ export default function GpsAdmin() {
         });
       }
 
-      if (historyJson.ok && historyJson.data?.items) {
-        const historyItems = historyJson.data.items.map((item) => ({
+      if (historyJson.ok && historyJson.data) {
+        const items = Array.isArray(historyJson.data.points)
+          ? historyJson.data.points
+          : Array.isArray(historyJson.data)
+            ? historyJson.data
+            : [];
+        const historyItems = items.map((item) => ({
           ts: item.ts || item.time || "",
           lat: item.lat,
           lng: item.lng,
@@ -135,6 +180,22 @@ export default function GpsAdmin() {
       return () => clearInterval(interval);
     }
   }, [selectedDevice]);
+
+  // update map center and polyline when selected device data changes
+  useEffect(() => {
+    if (selectedDeviceLatest) {
+      setMapCenter([selectedDeviceLatest.lat, selectedDeviceLatest.lng]);
+    }
+
+    if (selectedDeviceHistory.length > 0) {
+      const points = selectedDeviceHistory
+        .map((point) => [point.lat, point.lng])
+        .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+      setPolylinePoints(points);
+    } else {
+      setPolylinePoints([]);
+    }
+  }, [selectedDeviceLatest, selectedDeviceHistory]);
 
   // localStorage
   useEffect(() => {
@@ -168,35 +229,55 @@ export default function GpsAdmin() {
             Monitoring semua device secara realtime
           </p>
 
+          {/* STATS OVERVIEW */}
+          <div className="gps-admin-stats">
+            <div>
+              <div>{devices.length}</div>
+              <div>Total Device</div>
+            </div>
+            <div>
+              <div>{devicesData.filter(d => d.position).length}</div>
+              <div>Device Aktif</div>
+            </div>
+            <div>
+              <div>{devicesData.reduce((sum, d) => sum + d.history.length, 0)}</div>
+              <div>Total Track</div>
+            </div>
+            <div>
+              <div>{loading ? "..." : "Live"}</div>
+              <div>Status</div>
+            </div>
+          </div>
+
           {/* INFO PANEL */}
-          <div className="gps-admin-info-panel" style={{ marginBottom: "20px", padding: "15px", backgroundColor: "#f5f5f5", borderRadius: "8px" }}>
-            <h2 style={{ marginTop: 0 }}>Informasi Device</h2>
-            <p style={{ marginBottom: "15px", color: "#666" }}>
+          <div className="gps-admin-info-panel">
+            <h2>📍 Informasi Device</h2>
+            <p>
               Pilih device untuk melihat informasi detail lokasi terbaru dan history perjalanan
             </p>
 
             {selectedDevice && selectedDevice !== "all" && (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px", marginBottom: "15px" }}>
-                  <div style={{ padding: "10px", backgroundColor: "#fff", borderRadius: "4px" }}>
-                    <div style={{ fontSize: "12px", color: "#666" }}>Device ID</div>
-                    <div style={{ fontSize: "14px", fontWeight: "bold" }}>{selectedDevice}</div>
+                <div className="gps-admin-info-grid">
+                  <div className="gps-admin-info-card">
+                    <div>Device ID</div>
+                    <div>{selectedDevice}</div>
                   </div>
-                  <div style={{ padding: "10px", backgroundColor: "#fff", borderRadius: "4px" }}>
-                    <div style={{ fontSize: "12px", color: "#666" }}>Latitude</div>
-                    <div style={{ fontSize: "14px", fontWeight: "bold" }}>
+                  <div className="gps-admin-info-card">
+                    <div>Latitude</div>
+                    <div>
                       {selectedDeviceLatest ? selectedDeviceLatest.lat.toFixed(6) : "-"}
                     </div>
                   </div>
-                  <div style={{ padding: "10px", backgroundColor: "#fff", borderRadius: "4px" }}>
-                    <div style={{ fontSize: "12px", color: "#666" }}>Longitude</div>
-                    <div style={{ fontSize: "14px", fontWeight: "bold" }}>
+                  <div className="gps-admin-info-card">
+                    <div>Longitude</div>
+                    <div>
                       {selectedDeviceLatest ? selectedDeviceLatest.lng.toFixed(6) : "-"}
                     </div>
                   </div>
-                  <div style={{ padding: "10px", backgroundColor: "#fff", borderRadius: "4px" }}>
-                    <div style={{ fontSize: "12px", color: "#666" }}>Akurasi GPS</div>
-                    <div style={{ fontSize: "14px", fontWeight: "bold" }}>
+                  <div className="gps-admin-info-card">
+                    <div>Akurasi GPS</div>
+                    <div>
                       {selectedDeviceLatest?.accuracy_m != null
                         ? `${selectedDeviceLatest.accuracy_m.toFixed(1)} m`
                         : "-"}
@@ -204,9 +285,49 @@ export default function GpsAdmin() {
                   </div>
                 </div>
 
+                {/* TRACKING MAP */}
+                <div className="gps-admin-tracking-map">
+                  <h3>🗺️ Peta Tracking Device</h3>
+                  <div className="gps-admin-tracking-map-container">
+                    <MapContainer center={mapCenter} zoom={16} style={{ height: "100%", width: "100%" }}>
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <AutoFitMap
+                        latestPoint={selectedDeviceLatest}
+                        polylinePoints={polylinePoints}
+                      />
+                      {polylinePoints.length > 1 ? (
+                        <Polyline
+                          positions={polylinePoints}
+                          pathOptions={{
+                            color: "#2563eb",
+                            weight: 4,
+                            opacity: 0.8
+                          }}
+                        />
+                      ) : null}
+                      {selectedDeviceLatest ? (
+                        <Marker
+                          position={[selectedDeviceLatest.lat, selectedDeviceLatest.lng]}
+                          icon={createIcon("blue")}
+                        >
+                          <Popup>
+                            <strong>Posisi terbaru</strong>
+                            <br />
+                            {selectedDeviceLatest.lat.toFixed(6)}, {selectedDeviceLatest.lng.toFixed(6)}
+                            <br />
+                            {selectedDeviceLatest.accuracy_m != null
+                              ? `Akurasi: ${selectedDeviceLatest.accuracy_m.toFixed(1)} m`
+                              : ""}
+                          </Popup>
+                        </Marker>
+                      ) : null}
+                    </MapContainer>
+                  </div>
+                </div>
+
                 {/* HISTORY LIST */}
-                <div style={{ maxHeight: "200px", overflowY: "auto", border: "1px solid #e0e0e0", borderRadius: "4px", padding: "10px" }}>
-                  <h3 style={{ marginTop: 0, fontSize: "14px" }}>History Perjalanan (5 terbaru)</h3>
+                <div className="gps-admin-history-list">
+                  <h3>📋 History Perjalanan (5 terbaru)</h3>
                   {selectedDeviceHistory.length > 0 ? (
                     <div>
                       {selectedDeviceHistory
@@ -215,73 +336,66 @@ export default function GpsAdmin() {
                         .map((point, index) => (
                           <div
                             key={`${point.ts}-${index}`}
-                            style={{
-                              padding: "8px",
-                              borderBottom: "1px solid #f0f0f0",
-                              fontSize: "12px",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
+                            className="gps-admin-history-item"
                           >
-                            <div>
-                              <div style={{ fontWeight: "bold" }}>
-                                {point.ts || "Waktu tidak tersedia"}
+                            <div className="gps-admin-history-content">
+                              <div className="gps-admin-history-details">
+                                <div className="gps-admin-history-time">
+                                  {point.ts || "Waktu tidak tersedia"}
+                                </div>
+                                <div className="gps-admin-history-coords">
+                                  📍 {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
+                                  {point.accuracy_m != null ? ` • ${point.accuracy_m.toFixed(1)} m` : ""}
+                                </div>
                               </div>
-                              <div style={{ color: "#666", marginTop: "2px" }}>
-                                {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
-                                {point.accuracy_m != null ? ` • ${point.accuracy_m.toFixed(1)} m` : ""}
-                              </div>
+                              <a
+                                href={`https://www.google.com/maps?q=${point.lat},${point.lng}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="gps-admin-history-maps-link"
+                              >
+                                Maps
+                              </a>
                             </div>
-                            <a
-                              href={`https://www.google.com/maps?q=${point.lat},${point.lng}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{
-                                fontSize: "11px",
-                                color: "#2563eb",
-                                textDecoration: "none",
-                                whiteSpace: "nowrap",
-                                marginLeft: "10px",
-                              }}
-                            >
-                              Maps
-                            </a>
                           </div>
                         ))}
                     </div>
                   ) : (
-                    <p style={{ margin: 0, color: "#999", fontSize: "12px" }}>
-                      Belum ada history GPS
-                    </p>
+                    <div className="gps-admin-empty-state">
+                      Belum ada history GPS untuk device ini
+                    </div>
                   )}
                 </div>
               </>
             )}
 
             {(!selectedDevice || selectedDevice === "all") && (
-              <p style={{ margin: 0, color: "#999" }}>Pilih salah satu device dari filter di atas untuk melihat detailnya</p>
+              <div className="gps-admin-select-device-state">
+                Pilih salah satu device dari dropdown di bawah untuk melihat detailnya
+              </div>
             )}
           </div>
 
           {/* CONTROL */}
           <div className="gps-admin-controls">
-            <input
-              className="gps-admin-input"
-              type="text"
-              placeholder="Tambah atau filter device_id"
-              value={inputDevice}
-              onChange={(e) => setInputDevice(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (inputDevice && !devices.includes(inputDevice)) {
-                    setDevices([...devices, inputDevice]);
-                    setInputDevice("");
-                    setSelectedDevice(inputDevice);
+            <div>
+              <input
+                className="gps-admin-input"
+                type="text"
+                placeholder="Tambah atau cari device_id"
+                value={inputDevice}
+                onChange={(e) => setInputDevice(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (inputDevice && !devices.includes(inputDevice)) {
+                      setDevices([...devices, inputDevice]);
+                      setInputDevice("");
+                      setSelectedDevice(inputDevice);
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            </div>
 
             <button
               className="gps-admin-btn"
@@ -298,25 +412,19 @@ export default function GpsAdmin() {
           </div>
 
           {/* FILTER DROPDOWN */}
-          <div style={{ marginBottom: "15px" }}>
-            <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}>
+          <div className="gps-admin-filter-section">
+            <label className="gps-admin-filter-label">
               Filter Device:
             </label>
             <select
               value={selectedDevice}
               onChange={(e) => setSelectedDevice(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-                fontSize: "14px",
-              }}
+              className="gps-admin-select"
             >
-              <option value="all">Semua Device</option>
+              <option value="all">Semua Device ({devices.length})</option>
               {devices.map((device) => (
                 <option key={device} value={device}>
-                  {device}
+                  📱 {device}
                 </option>
               ))}
             </select>
@@ -328,9 +436,12 @@ export default function GpsAdmin() {
               center={[-7.2575, 112.7521]}
               zoom={13}
               className="gps-admin-map-large"
+              style={{
+                height: "500px",
+                width: "100%"
+              }}
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
               {filteredDevices.map((dev, index) => (
                 <div key={index}>
                   {dev.position && (
@@ -339,30 +450,53 @@ export default function GpsAdmin() {
                       icon={createIcon(dev.color)}
                     >
                       <Popup>
-                        <b>{dev.device_id}</b>
+                        <div style={{ fontSize: "14px", lineHeight: "1.4" }}>
+                          <strong style={{ color: dev.color }}>📍 {dev.device_id}</strong>
+                          <br />
+                          📊 Status: <strong>Aktif</strong>
+                          <br />
+                          📈 Track points: <strong>{dev.history.length}</strong>
+                          <br />
+                          <small style={{ color: "#666" }}>
+                            Klik untuk detail lebih lanjut
+                          </small>
+                        </div>
                       </Popup>
                     </Marker>
                   )}
 
                   <Polyline
                     positions={dev.history}
-                    pathOptions={{ color: dev.color }}
+                    pathOptions={{
+                      color: dev.color,
+                      weight: 3,
+                      opacity: 0.7,
+                      dashArray: "5, 10"
+                    }}
                   />
                 </div>
               ))}
             </MapContainer>
           </div>
 
-          {/*LEGEND */}
+          {/* LEGEND */}
           <div className="gps-admin-legend">
             {devicesData.map((dev, i) => (
-              <span key={i}>
-                <span
-                  className="legend-dot"
-                  style={{ backgroundColor: dev.color }}
-                ></span>
-                {dev.device_id}
-              </span>
+              <div
+                key={i}
+                className="gps-admin-legend-item"
+                onClick={() => setSelectedDevice(dev.device_id)}
+                style={{
+                  '--legend-color': dev.color,
+                  '--status-color': dev.position ? '#48bb78' : '#e53e3e'
+                }}
+              >
+                <span className="gps-admin-legend-dot"></span>
+                <span>📱 {dev.device_id}</span>
+                <span className="gps-admin-status-indicator">
+                  {dev.position ? "●" : "○"}
+                </span>
+              </div>
             ))}
           </div>
 
