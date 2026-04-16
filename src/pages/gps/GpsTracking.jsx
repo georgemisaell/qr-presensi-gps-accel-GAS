@@ -1,22 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  MapContainer,
-  Marker,
-  Popup,
-  Polyline,
-  TileLayer,
-  useMap,
-} from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { BASE_URL } from "../../Api";
 import "./GpsTracking.css";
 
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-const DEFAULT_CENTER = [-6.2, 106.8];
 const HISTORY_LIMIT = 200;
 const POLL_INTERVAL_MS = 5000;
 const GEO_OPTIONS = {
@@ -33,13 +19,6 @@ function getOrCreateGpsDeviceId() {
   }
   return id;
 }
-
-const defaultIcon = L.icon({
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
 
 function normalizeGpsPoint(point) {
   if (!point) return null;
@@ -69,30 +48,6 @@ async function postGpsPoint(payload) {
   }
 
   throw new Error(json.error || "GPS upload failed");
-}
-
-function AutoFitMap({ latestPoint, polylinePoints }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (latestPoint) {
-      map.setView([latestPoint.lat, latestPoint.lng], 16, {
-        animate: true,
-      });
-      return;
-    }
-
-    if (polylinePoints.length > 1) {
-      const bounds = L.latLngBounds(polylinePoints);
-      map.fitBounds(bounds, {
-        padding: [30, 30],
-        maxZoom: 16,
-        animate: true,
-      });
-    }
-  }, [latestPoint, map, polylinePoints]);
-
-  return null;
 }
 
 async function getGpsLatest(deviceId) {
@@ -142,21 +97,10 @@ export default function GpsTracking() {
   const [status, setStatus] = useState("Siap untuk mengambil GPS.");
   const [statusType, setStatusType] = useState("idle");
   const [latestPoint, setLatestPoint] = useState(null);
-  const [currentPoint, setCurrentPoint] = useState(null);
+  const [, setCurrentPoint] = useState(null);
   const [history, setHistory] = useState([]);
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const mapCenter = useMemo(() => {
-    const point = latestPoint || currentPoint || history[history.length - 1];
-    return point ? [point.lat, point.lng] : DEFAULT_CENTER;
-  }, [latestPoint, currentPoint, history]);
-
-  const polylinePoints = useMemo(() => {
-    return history
-      .map((point) => [point.lat, point.lng])
-      .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
-  }, [history]);
 
   const refreshRemoteData = useCallback(async () => {
     try {
@@ -301,58 +245,66 @@ export default function GpsTracking() {
 
   return (
     <div className="gps-page">
-      <div className="gps-top-nav">
-        <button
-          type="button"
-          className="gps-back-btn"
-          onClick={() => navigate("/")}
-        >
-          Kembali ke Dashboard
-        </button>
-      </div>
-
-      <div className="gps-shell">
-        <section className="gps-panel fade-in">
-          <h1>GPS + Peta</h1>
-          <p className="gps-subtitle">
-            Kirim titik GPS periodik ke backend, lihat marker terbaru, dan
-            gambar jejak perjalanan dalam polyline.
-          </p>
-
-          <div className="gps-device-row">
-            <span className="gps-chip">Device ID: {deviceId}</span>
-            <span className="gps-chip">Titik history: {history.length}</span>
-            <span className="gps-chip">
-              Status: {isTracking ? "tracking" : "idle"}
-            </span>
+      {/* SIDEBAR */}
+      <aside className="gps-sidebar">
+        <div className="gps-sidebar-brand">
+          <div className="gps-brand-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+              <circle cx="12" cy="12" r="9" strokeDasharray="2 3" />
+            </svg>
           </div>
-
-          <div className="gps-controls">
-            <input
-              className="gps-input"
-              type="text"
-              value={deviceId}
-              readOnly
-            />
-            <input
-              className="gps-input"
-              type="text"
-              value={
-                latestPoint
-                  ? `${latestPoint.lat.toFixed(6)}, ${latestPoint.lng.toFixed(6)}`
-                  : "-"
-              }
-              readOnly
-            />
+          <div>
+            <p className="gps-brand-title">GPS Tracker</p>
+            <p className="gps-brand-sub">Client Panel</p>
           </div>
+        </div>
 
-          <div className="gps-action-row">
+        {/* Device info */}
+        <div className="gps-sidebar-section">
+          <p className="gps-section-label">Device</p>
+          <div className="gps-device-card">
+            <p className="gps-device-card-label">Device ID</p>
+            <p className="gps-device-card-value">{deviceId}</p>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="gps-stats-grid">
+          <div className="gps-stat-card">
+            <p className="gps-stat-label">Status</p>
+            <p className={`gps-stat-value ${isTracking ? "gps-stat-active" : ""}`}>
+              {isTracking ? "Aktif" : "Idle"}
+            </p>
+          </div>
+          <div className="gps-stat-card">
+            <p className="gps-stat-label">Titik</p>
+            <p className="gps-stat-value">{history.length}</p>
+          </div>
+          <div className="gps-stat-card gps-stat-full">
+            <p className="gps-stat-label">Akurasi Terakhir</p>
+            <p className="gps-stat-value gps-stat-sm">
+              {latestPoint?.accuracy_m != null
+                ? `${latestPoint.accuracy_m.toFixed(1)} m`
+                : "-"}
+            </p>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="gps-sidebar-section">
+          <p className="gps-section-label">Kontrol</p>
+          <div className="gps-action-stack">
             {!isTracking ? (
               <button
                 type="button"
                 className="gps-btn gps-btn-start"
                 onClick={startTracking}
               >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
                 Mulai GPS
               </button>
             ) : (
@@ -361,6 +313,9 @@ export default function GpsTracking() {
                 className="gps-btn gps-btn-stop"
                 onClick={stopTracking}
               >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="6" width="12" height="12" rx="1" />
+                </svg>
                 Stop GPS
               </button>
             )}
@@ -371,110 +326,133 @@ export default function GpsTracking() {
               onClick={refreshRemoteData}
               disabled={isSending}
             >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M23 4v6h-6M1 20v-6h6" />
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+              </svg>
               Refresh Data
             </button>
           </div>
+        </div>
 
-          <p className={`gps-status gps-status--${statusType}`}>{status}</p>
-          {errorMessage ? (
-            <p className="gps-status gps-status--warning">{errorMessage}</p>
-          ) : null}
-          {isSending ? (
-            <p className="gps-status gps-status--idle">Mengirim titik GPS...</p>
-          ) : null}
+        <button className="gps-back-btn" onClick={() => navigate("/")}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Kembali ke Dashboard
+        </button>
+      </aside>
 
-          <div className="gps-stats">
-            <div className="gps-stat">
-              <span>Latitude</span>
-              <strong>{latestPoint ? latestPoint.lat.toFixed(6) : "-"}</strong>
+      {/* MAIN */}
+      <main className="gps-main">
+        {/* Topbar */}
+        <div className="gps-topbar">
+          <div>
+            <h1 className="gps-page-title">GPS Tracking</h1>
+            <p className="gps-page-sub">
+              Kirim lokasi periodik ke server · 30 menit terakhir
+            </p>
+          </div>
+          <div className={`gps-live-badge ${statusType}`}>
+            <span className={`gps-live-dot ${isSending ? "loading" : ""} ${statusType}`} />
+            {isTracking ? "Tracking" : "Idle"}
+          </div>
+        </div>
+
+        <div className="gps-content">
+          {/* Status banner */}
+          <div className={`gps-status-banner gps-status-banner--${statusType}`}>
+            <div className="gps-status-icon">
+              {statusType === "tracking" && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              )}
+              {statusType === "error" && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              )}
+              {statusType === "idle" && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              )}
             </div>
-            <div className="gps-stat">
-              <span>Longitude</span>
-              <strong>{latestPoint ? latestPoint.lng.toFixed(6) : "-"}</strong>
+            <div className="gps-status-text">
+              <p className="gps-status-main">{status}</p>
+              {errorMessage && <p className="gps-status-err">{errorMessage}</p>}
+              {isSending && (
+                <p className="gps-status-sub">Mengirim titik GPS...</p>
+              )}
             </div>
-            <div className="gps-stat">
-              <span>Accuracy</span>
-              <strong>
+          </div>
+
+          {/* Coordinate display */}
+          <div className="gps-coord-grid">
+            <div className="gps-coord-card">
+              <p className="gps-coord-label">Latitude</p>
+              <p className="gps-coord-value">
+                {latestPoint ? latestPoint.lat.toFixed(6) : "—"}
+              </p>
+            </div>
+            <div className="gps-coord-card">
+              <p className="gps-coord-label">Longitude</p>
+              <p className="gps-coord-value">
+                {latestPoint ? latestPoint.lng.toFixed(6) : "—"}
+              </p>
+            </div>
+            <div className="gps-coord-card">
+              <p className="gps-coord-label">Accuracy</p>
+              <p className="gps-coord-value">
                 {latestPoint?.accuracy_m != null
                   ? `${latestPoint.accuracy_m.toFixed(1)} m`
-                  : "-"}
-              </strong>
+                  : "—"}
+              </p>
             </div>
           </div>
 
-          <div className="gps-list">
-            {history
-              .slice(-5)
-              .reverse()
-              .map((point, index) => (
-                <div className="gps-list-item" key={`${point.ts}-${index}`}>
-                  <div>
-                    <p className="gps-list-title">
-                      {point.ts || "Waktu tidak tersedia"}
-                    </p>
-                    <p className="gps-list-subtitle">
-                      {point.lat.toFixed(6)}, {point.lng.toFixed(6)}{" "}
-                      {point.accuracy_m != null
-                        ? `• ${point.accuracy_m.toFixed(1)} m`
-                        : ""}
-                    </p>
-                  </div>
-                  <a
-                    className="gps-list-link"
-                    href={`https://www.google.com/maps?q=${point.lat},${point.lng}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Buka Maps
-                  </a>
-                </div>
-              ))}
-            {!history.length ? (
-              <p className="gps-empty">Belum ada history GPS dari server.</p>
-            ) : null}
-          </div>
-        </section>
-
-        <section className="gps-panel fade-in">
-          <h2>Peta Tracking</h2>
-          <p className="gps-subtitle">
-            Marker menunjukkan posisi terbaru, sedangkan garis menunjukkan
-            history perjalanan.
-          </p>
-
-          <div className="gps-map-wrap">
-            <MapContainer center={mapCenter} zoom={16} className="gps-map">
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <AutoFitMap
-                latestPoint={latestPoint}
-                polylinePoints={polylinePoints}
-              />
-              {polylinePoints.length > 1 ? (
-                <Polyline
-                  positions={polylinePoints}
-                  pathOptions={{ color: "#2563eb", weight: 5 }}
-                />
-              ) : null}
-              {latestPoint ? (
-                <Marker
-                  position={[latestPoint.lat, latestPoint.lng]}
-                  icon={defaultIcon}
-                >
-                  <Popup>
-                    <strong>Posisi terbaru</strong>
-                    <br />
-                    {latestPoint.lat.toFixed(6)}, {latestPoint.lng.toFixed(6)}
-                    <br />
-                    {latestPoint.accuracy_m != null
-                      ? `Akurasi: ${latestPoint.accuracy_m.toFixed(1)} m`
-                      : ""}
-                  </Popup>
-                </Marker>
-              ) : null}
-            </MapContainer>
-          </div>
-        </section>
-      </div>
+          {/* Notifikasi GPS Active / Inactive */}
+          {isTracking ? (
+            <div className="gps-notice gps-notice--active">
+              <div className="gps-notice-pulse">
+                <span className="gps-notice-pulse-ring" />
+                <span className="gps-notice-pulse-dot" />
+              </div>
+              <div className="gps-notice-text">
+                <p className="gps-notice-title">GPS Tracking Sedang Aktif</p>
+                <p className="gps-notice-desc">
+                  Lokasi Anda sedang dikirim ke server secara periodik. Jangan
+                  tutup halaman ini agar tracking tetap berjalan. Tekan tombol
+                  <strong> Stop GPS </strong>
+                  di panel kiri untuk menghentikan.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="gps-notice gps-notice--idle">
+              <div className="gps-notice-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </div>
+              <div className="gps-notice-text">
+                <p className="gps-notice-title">GPS Tracking Belum Aktif</p>
+                <p className="gps-notice-desc">
+                  Tekan tombol <strong>Mulai GPS</strong> di panel kiri untuk
+                  mulai mengirimkan lokasi Anda ke server.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
