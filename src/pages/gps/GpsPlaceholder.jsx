@@ -30,7 +30,7 @@ export default function GpsPlaceholder() {
             borderRadius: "10px",
             padding: "0.55rem 0.9rem",
             background: "#eff6ff",
-            color: "#1d4ed8",
+            color: "#1d4ed8",    
             fontWeight: 700,
             cursor: "pointer",
           }}
