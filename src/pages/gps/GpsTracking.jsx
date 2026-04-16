@@ -435,7 +435,7 @@ export default function GpsTracking() {
           </div>
         </section>
 
-        <section className="gps-panel fade-in">
+        {/* <section className="gps-panel fade-in">
           <h2>Peta Tracking</h2>
           <p className="gps-subtitle">
             Marker menunjukkan posisi terbaru, sedangkan garis menunjukkan
@@ -473,7 +473,7 @@ export default function GpsTracking() {
               ) : null}
             </MapContainer>
           </div>
-        </section>
+        </section> */}
       </div>
     </div>
   );
